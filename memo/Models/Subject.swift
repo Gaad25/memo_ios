@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 // Este é o nosso modelo de dados que corresponde à tabela no Supabase
-struct Subject: Identifiable, Codable {
+struct Subject: Identifiable, Codable, Equatable {
     let id: UUID
     var name: String
     var category: String

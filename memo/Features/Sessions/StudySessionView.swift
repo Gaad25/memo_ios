@@ -284,7 +284,8 @@ struct StudySessionView: View {
             if let error = error {
                 print("Erro ao agendar notificação local: \(error.localizedDescription)")
             } else {
-                print("Notificação para '\(subjectName)' agendada para \(triggerDateComponents.date?.formatted() ?? "data inválida").")
+                let scheduledDate = Calendar.current.date(from: triggerDateComponents)
+                print("Notificação para '\(subjectName)' agendada para \(scheduledDate?.formatted() ?? "data inválida").")
             }
         }
     }

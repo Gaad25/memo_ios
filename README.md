@@ -112,42 +112,17 @@ Users can create and track specific goals, such as:
 
 ```
 memo/
-├── app/                      # Main application code using Expo Router
-│   ├── auth/                 # Authentication routes
-│   │   ├── login.tsx
-│   │   ├── register.tsx
-│   │   └── forgot-password.tsx
-│   ├── dashboard.tsx         # Main dashboard
-│   ├── subjects/             # Subject management
-│   │   ├── index.tsx         # List subjects
-│   │   ├── [id].tsx          # View subject details
-│   │   └── create.tsx        # Create new subject
-│   ├── sessions/             # Session management
-│   │   ├── index.tsx         # List sessions
-│   │   ├── [id].tsx          # View session details
-│   │   └── create.tsx        # Start new session
-│   ├── stats/                # Statistics
-│   │   └── index.tsx         # Stats overview
-│   ├── _layout.tsx           # Root layout
-│   └── index.tsx             # Entry point
-├── components/               # Reusable components
-│   ├── auth/                 # Auth-related components
-│   ├── subjects/             # Subject-related components
-│   ├── sessions/             # Session-related components
-│   ├── stats/                # Statistics components
-│   └── ui/                   # UI components
-├── constants/                # App constants
-├── context/                  # React context providers
-├── hooks/                    # Custom hooks
-├── lib/                      # Library code
-│   └── supabase.ts           # Supabase client
-├── services/                 # Service layer
-│   ├── auth.ts
-│   ├── subjects.ts
-│   ├── sessions.ts
-│   └── stats.ts
-├── types/                    # TypeScript type definitions
-├── utils/                    # Utility functions
+├── Features/              # SwiftUI views grouped by feature
+├── Models/                # Data models
+├── Services & Managers/   # Networking and managers
+├── ViewModels/            # Observable object view models
+├── Assets.xcassets/       # Image and color assets
+├── Preview Content/       # Assets for SwiftUI previews
+├── Supabase-Keys.plist    # Supabase credentials
+├── memoApp.swift          # App entry point
+memo.xcodeproj/            # Xcode project
+memoTests/                 # Unit tests
+memoUITests/               # UI tests
 ```
 
 ## Implementation Progress

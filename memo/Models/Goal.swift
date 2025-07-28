@@ -1,5 +1,5 @@
 //
-//  Goal.swift.swift
+//  Goal.swift
 //  memo
 //
 //  Created by Gabriel Gad Costa Weyers on 26/05/25.

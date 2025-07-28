@@ -53,19 +53,19 @@ final class HomeViewModel: ObservableObject {
         do {
             let userId = try await SupabaseManager.shared.client.auth.session.user.id
 
-            async let profileTask: UserProfile? = try? await SupabaseManager.shared.client
+            async let profileTask: UserProfile? = try? SupabaseManager.shared.client
                 .from("user_profiles").select().eq("id", value: userId).single().execute().value
-            
-            async let subjectsTask: [Subject] = try await SupabaseManager.shared.client
+
+            async let subjectsTask: [Subject] = try SupabaseManager.shared.client
                 .from("subjects").select().eq("user_id", value: userId).order("name", ascending: true).execute().value
-            
-            async let sessionsTask: [StudySession] = try await SupabaseManager.shared.client
+
+            async let sessionsTask: [StudySession] = try SupabaseManager.shared.client
                 .from("study_sessions").select().eq("user_id", value: userId).execute().value
-            
-            async let goalsTask: [Goal] = try await SupabaseManager.shared.client
+
+            async let goalsTask: [Goal] = try SupabaseManager.shared.client
                 .from("goals").select().eq("user_id", value: userId).eq("completed", value: false).execute().value
 
-            let (profile, subjects, sessions, goals) = await (profileTask, try subjectsTask, try sessionsTask, try goalsTask)
+            let (profile, subjects, sessions, goals) = try await (profileTask, subjectsTask, sessionsTask, goalsTask)
             if let profile = profile {
                 self.userPoints = profile.points
                 self.userStreak = profile.currentStreak

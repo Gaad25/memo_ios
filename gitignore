@@ -1,0 +1,17 @@
+
+# macOS
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.xcworkspace
+xcuserdata/
+*.xcodeproj/project.xcworkspace/
+
+# Arquivos sensíveis
+memo/Supabase-Keys.plist
+
+# Swift Package Manager
+.build/
+Packages/

@@ -11,7 +11,13 @@ import Testing
 struct memoTests {
 
     @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+        // Simple sanity test template generated with the project
+    }
+
+    /// Verifies that the `Color.toHex()` helper returns the expected hex string
+    /// representation for a given color.
+    @Test func colorToHex() async throws {
+        #expect(Color.red.toHex() == "#FF0000")
     }
 
 }

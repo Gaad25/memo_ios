@@ -96,4 +96,107 @@ private func scheduleNextReview(for previousReview: Review, basedOn difficulty: 
 
 The shared `HomeViewModel` then refreshes the dashboard to show the updated points and streak.
 
----
+Memo helps users monitor and optimize their study sessions through a simple, intuitive interface equipped with productivity-focused features. Available for Android and iOS.
+
+
+## Application Structure and Flow
+
+### Login Screen
+- Email and password entry
+- Quick login option via Google
+- Password recovery
+
+### Main Dashboard
+After logging in, users are automatically directed to the main dashboard, which includes:
+
+#### Performance Summary
+- Total study time (hours/minutes)
+- Currently active goals
+- Recent progress (latest study sessions)
+
+### Subjects Tab
+#### Custom Subjects Registration
+- Subject name
+- Category (e.g., Humanities, Exact Sciences, Biological Sciences)
+- Custom color selection
+
+#### Start Study Session
+- Select a registered subject
+- Record study duration (automatic timer or manual entry)
+- Record the number of questions attempted
+- Record the number of correct answers
+- Add session notes
+
+### Sessions Management
+- View all study sessions
+- Filter by subject
+- Sort by date, duration, or performance
+- Delete sessions
+
+### Performance Statistics
+Upon completing a study session, the application automatically updates statistics displaying:
+
+#### Performance Graphs by Subject
+- Average study time
+- Total number of questions attempted
+- Accuracy rate (%)
+- Study time distribution by day of week
+
+### Study Goals
+Users can create and track specific goals, such as:
+- Defining the goal duration (e.g., 30 hours)
+- Specifying the subject associated with the goal
+- Setting a deadline for completion
+- Real-time visual tracking of progress on the main dashboard
+
+## Database Schema
+
+### users
+- id: uuid (primary key)
+- email: text (unique)
+- password: text (hashed)
+- created_at: timestamp
+- updated_at: timestamp
+- name: text
+- avatar_url: text
+- preferences: jsonb
+
+### categories
+- id: uuid (primary key)
+- name: text
+- created_at: timestamp
+
+### subjects
+- id: uuid (primary key)
+- name: text
+- category_id: uuid (foreign key to categories.id)
+- user_id: uuid (foreign key to users.id)
+- created_at: timestamp
+- updated_at: timestamp
+- color: text
+- icon: text
+- ### study_sessions
+- id: uuid (primary key)
+- subject_id: uuid (foreign key to subjects.id)
+- user_id: uuid (foreign key to users.id)
+- start_time: timestamp
+- end_time: timestamp
+- duration_minutes: integer
+- questions_attempted: integer
+- questions_correct: integer
+- notes: text
+- created_at: timestamp
+- updated_at: timestamp
+
+- memo/
+├── Features/              # SwiftUI views grouped by feature
+├── Models/                # Data models
+├── Services & Managers/   # Networking and managers
+├── ViewModels/            # Observable object view models
+├── Assets.xcassets/       # Image and color assets
+├── Preview Content/       # Assets for SwiftUI previews
+├── Supabase-Keys.plist    # Supabase credentials
+├── memoApp.swift          # App entry point
+memo.xcodeproj/            # Xcode project
+memoTests/                 # Unit tests
+memoUITests/               # UI tests

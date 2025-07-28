@@ -18,6 +18,37 @@ final class ReviewsViewModel: ObservableObject {
             case subjectData = "subject_data"
             case sessionNotes = "session_notes"
         }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            reviewId = try container.decode(UUID.self, forKey: .reviewId)
+            sessionNotes = try container.decodeIfPresent(String.self, forKey: .sessionNotes)
+
+            // Supabase may return nested JSON as either objects or JSON strings.
+            // We try decoding both ways to be resilient to the RPC output.
+
+            // Decode Review information
+            if let review = try? container.decode(Review.self, forKey: .reviewData) {
+                reviewData = review
+            } else if let reviewString = try? container.decode(String.self, forKey: .reviewData),
+                      let reviewData = reviewString.data(using: .utf8) {
+                reviewData = try JSONDecoder().decode(Review.self, from: reviewData)
+            } else {
+                throw DecodingError.dataCorruptedError(forKey: .reviewData, in: container,
+                                                      debugDescription: "Unable to decode review_data")
+            }
+
+            // Decode Subject information
+            if let subject = try? container.decode(Subject.self, forKey: .subjectData) {
+                subjectData = subject
+            } else if let subjectString = try? container.decode(String.self, forKey: .subjectData),
+                      let subjectData = subjectString.data(using: .utf8) {
+                subjectData = try JSONDecoder().decode(Subject.self, from: subjectData)
+            } else {
+                throw DecodingError.dataCorruptedError(forKey: .subjectData, in: container,
+                                                      debugDescription: "Unable to decode subject_data")
+            }
+        }
     }
     
     enum ReviewDifficulty: String {

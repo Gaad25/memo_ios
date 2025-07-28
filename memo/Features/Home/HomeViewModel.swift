@@ -148,6 +148,68 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
+    /// Updates the user's points and streak after a study-related action.
+    /// This follows the rules:
+    ///   - if the last study was yesterday, increment the streak
+    ///   - if the last study was today, keep the streak as is
+    ///   - if the last study was before yesterday, reset the streak to 1
+    ///   - if the user has never studied, start the streak at 1
+    func updateGamificationData() async {
+        do {
+            let userId = try await SupabaseManager.shared.client.auth.session.user.id
+
+            // Ensure the user profile exists before attempting to update it
+            try await SupabaseManager.shared.client.rpc("ensure_user_profile_exists").execute()
+
+            var profile: UserProfile = try await SupabaseManager.shared.client
+                .from("user_profiles")
+                .select()
+                .eq("id", value: userId)
+                .single()
+                .execute()
+                .value
+
+            let today = Calendar.current.startOfDay(for: Date())
+
+            if let lastStudy = profile.lastStudyDate {
+                if Calendar.current.isDateInYesterday(lastStudy) {
+                    profile.currentStreak += 1
+                } else if !Calendar.current.isDateInToday(lastStudy) {
+                    profile.currentStreak = 1
+                }
+            } else {
+                profile.currentStreak = 1
+            }
+
+            profile.lastStudyDate = today
+            profile.points += 10
+
+            struct ProfileUpdate: Encodable {
+                let points: Int
+                let current_streak: Int
+                let last_study_date: Date
+            }
+
+            let updates = ProfileUpdate(
+                points: profile.points,
+                current_streak: profile.currentStreak,
+                last_study_date: today
+            )
+
+            try await SupabaseManager.shared.client
+                .from("user_profiles")
+                .update(updates)
+                .eq("id", value: userId)
+                .execute()
+
+            self.userPoints = profile.points
+            self.userStreak = profile.currentStreak
+
+        } catch {
+            print("❌ Error updating gamification: \(error.localizedDescription)")
+        }
+    }
+
     private func processDashboardSummary(from sessions: [StudySession]?) {
         guard let sessions = sessions else { return }
         totalStudyMinutes = sessions.reduce(0) { $0 + $1.durationMinutes }

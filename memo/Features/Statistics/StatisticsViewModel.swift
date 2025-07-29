@@ -39,6 +39,8 @@ final class StatisticsViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
+        defer { isLoading = false }
+
         do {
             // CORREÇÃO: A forma correta de usar async let com Supabase é aguardar a propriedade .value.
             // A tipagem explícita [Subject] e [StudySession] também ajuda a evitar erros.
@@ -53,28 +55,29 @@ final class StatisticsViewModel: ObservableObject {
         } catch {
             errorMessage = "Erro ao buscar dados para estatísticas: \(error.localizedDescription)"
         }
-
-        isLoading = false
     }
 
     private func processData(subjects: [Subject], sessions: [StudySession]) {
         // --- Processa o desempenho por matéria ---
         var performances: [SubjectPerformance] = []
 
-        // Filtra sessões inválidas para evitar valores inesperados no gráfico
-        let validSessions = sessions.filter { session in
-            session.durationMinutes > 0 && session.startTime <= session.endTime
+        // Filtra e sanitiza sessões para evitar valores inesperados no gráfico
+        let validSessions = sessions.compactMap { session -> StudySession? in
+            guard session.durationMinutes > 0,
+                  session.startTime <= session.endTime else { return nil }
+            return session
         }
 
         for subject in subjects {
             let subjectSessions = validSessions.filter { $0.subjectId == subject.id }
             guard !subjectSessions.isEmpty else { continue }
 
-            let totalMinutes = subjectSessions.reduce(0) { $0 + $1.durationMinutes }
-            let questionsAttempted = subjectSessions.compactMap { $0.questionsAttempted }.reduce(0, +)
-            let questionsCorrect = subjectSessions.compactMap { $0.questionsCorrect }.reduce(0, +)
+            let totalMinutes = subjectSessions.reduce(0) { $0 + max($1.durationMinutes, 0) }
+            let questionsAttempted = subjectSessions.reduce(0) { $0 + max($1.questionsAttempted ?? 0, 0) }
+            let questionsCorrect = subjectSessions.reduce(0) { $0 + max($1.questionsCorrect ?? 0, 0) }
 
-            let accuracy = questionsAttempted > 0 ? Double(questionsCorrect) / Double(questionsAttempted) : 0.0
+            let rawAccuracy = questionsAttempted > 0 ? Double(questionsCorrect) / Double(questionsAttempted) : 0.0
+            let accuracy = min(max(rawAccuracy, 0.0), 1.0)
 
             performances.append(SubjectPerformance(
                 id: subject.id,
@@ -91,8 +94,10 @@ final class StatisticsViewModel: ObservableObject {
         var dailyTotals: [Int: Int] = [:]
 
         for session in validSessions {
+            let minutes = max(session.durationMinutes, 0)
+            guard minutes > 0 else { continue }
             let weekday = calendar.component(.weekday, from: session.startTime)
-            dailyTotals[weekday, default: 0] += session.durationMinutes
+            dailyTotals[weekday, default: 0] += minutes
         }
 
         // CORREÇÃO: A variável 'distribution' não era modificada, então foi alterada para 'let'.

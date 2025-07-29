@@ -21,28 +21,36 @@ final class ReviewsViewModel: ObservableObject {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
+
             reviewId = try container.decode(UUID.self, forKey: .reviewId)
             sessionNotes = try container.decodeIfPresent(String.self, forKey: .sessionNotes)
 
-            func decodeNested<T: Decodable>(_ type: T.Type, forKey key: CodingKeys) throws -> T {
-                if let value = try? container.decode(T.self, forKey: key) {
-                    return value
-                }
+            reviewData = try Self.decodeNested(in: container, forKey: .reviewData)
+            subjectData = try Self.decodeNested(in: container, forKey: .subjectData)
+        }
 
-                if let string = try? container.decode(String.self, forKey: key),
-                   let data = string.data(using: .utf8) {
-                    return try JSONDecoder().decode(T.self, from: data)
-                }
-
-                throw DecodingError.dataCorruptedError(forKey: key,
-                                                      in: container,
-                                                      debugDescription: "Unable to decode \(key.stringValue)")
+        /// Decodes a nested value that may be returned either as a JSON object or
+        /// as a JSON-encoded string.
+        private static func decodeNested<T: Decodable>(
+            in container: KeyedDecodingContainer<CodingKeys>,
+            forKey key: CodingKeys
+        ) throws -> T {
+            if let value = try container.decodeIfPresent(T.self, forKey: key) {
+                return value
             }
 
-            // Supabase may return nested JSON as either objects or JSON strings.
-            // decodeNested(_:forKey:) handles both representations.
-            reviewData = try decodeNested(Review.self, forKey: .reviewData)
-            subjectData = try decodeNested(Subject.self, forKey: .subjectData)
+            if let jsonString = try container.decodeIfPresent(String.self, forKey: key),
+               let data = jsonString.data(using: .utf8) {
+                return try JSONDecoder().decode(T.self, from: data)
+            }
+
+            throw DecodingError.valueNotFound(
+                T.self,
+                DecodingError.Context(
+                    codingPath: container.codingPath + [key],
+                    debugDescription: "Missing or invalid \(key.stringValue)"
+                )
+            )
         }
     }
     

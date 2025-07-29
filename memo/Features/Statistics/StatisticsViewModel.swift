@@ -60,8 +60,14 @@ final class StatisticsViewModel: ObservableObject {
     private func processData(subjects: [Subject], sessions: [StudySession]) {
         // --- Processa o desempenho por matéria ---
         var performances: [SubjectPerformance] = []
+
+        // Filtra sessões inválidas para evitar valores inesperados no gráfico
+        let validSessions = sessions.filter { session in
+            session.durationMinutes > 0 && session.startTime <= session.endTime
+        }
+
         for subject in subjects {
-            let subjectSessions = sessions.filter { $0.subjectId == subject.id }
+            let subjectSessions = validSessions.filter { $0.subjectId == subject.id }
             guard !subjectSessions.isEmpty else { continue }
 
             let totalMinutes = subjectSessions.reduce(0) { $0 + $1.durationMinutes }
@@ -84,7 +90,7 @@ final class StatisticsViewModel: ObservableObject {
         let calendar = Calendar.current
         var dailyTotals: [Int: Int] = [:]
 
-        for session in sessions {
+        for session in validSessions {
             let weekday = calendar.component(.weekday, from: session.startTime)
             dailyTotals[weekday, default: 0] += session.durationMinutes
         }

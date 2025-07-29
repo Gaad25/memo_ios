@@ -32,11 +32,12 @@ struct StatisticsView: View {
                             .padding()
                     } else {
                         // Gráfico 1: Tempo de Estudo por Matéria
-                        if !viewModel.subjectPerformances.isEmpty {
+                        let timeData = viewModel.subjectPerformances.filter { $0.totalMinutes > 0 }
+                        if !timeData.isEmpty {
                             VStack(alignment: .leading) {
                                 Text("Tempo de Estudo por Matéria")
                                     .font(.headline)
-                                Chart(viewModel.subjectPerformances) { performance in
+                                Chart(timeData) { performance in
                                     BarMark(
                                         x: .value("Matéria", performance.name),
                                         y: .value("Minutos", performance.totalMinutes)
@@ -52,7 +53,9 @@ struct StatisticsView: View {
                         }
 
                         // Gráfico 2: Taxa de Acerto por Matéria
-                        let accuracyData = viewModel.subjectPerformances.filter { $0.accuracy > 0 }
+                        let accuracyData = viewModel.subjectPerformances.filter {
+                            $0.accuracy > 0 && $0.accuracy.isFinite
+                        }
                         if !accuracyData.isEmpty {
                             VStack(alignment: .leading) {
                                 Text("Taxa de Acerto por Matéria")

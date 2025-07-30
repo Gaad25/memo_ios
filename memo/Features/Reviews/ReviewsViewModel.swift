@@ -21,36 +21,37 @@ final class ReviewsViewModel: ObservableObject {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-
             reviewId = try container.decode(UUID.self, forKey: .reviewId)
             sessionNotes = try container.decodeIfPresent(String.self, forKey: .sessionNotes)
 
-            reviewData = try Self.decodeNested(in: container, forKey: .reviewData)
-            subjectData = try Self.decodeNested(in: container, forKey: .subjectData)
+            reviewData = try Self.decodeMixedJSON(Review.self, from: container, forKey: .reviewData)
+            subjectData = try Self.decodeMixedJSON(Subject.self, from: container, forKey: .subjectData)
         }
 
-        /// Decodes a nested value that may be returned either as a JSON object or
-        /// as a JSON-encoded string.
-        private static func decodeNested<T: Decodable>(
-            in container: KeyedDecodingContainer<CodingKeys>,
-            forKey key: CodingKeys
-        ) throws -> T {
-            if let value = try container.decodeIfPresent(T.self, forKey: key) {
+        /// Supabase may return nested JSON either as a real object or as a JSON encoded string.
+        /// This helper transparently decodes both representations and surfaces key not found errors properly.
+        private static func decodeMixedJSON<T: Decodable>(_ type: T.Type,
+                                                         from container: KeyedDecodingContainer<CodingKeys>,
+                                                         forKey key: CodingKeys) throws -> T {
+            guard container.contains(key) else {
+                throw DecodingError.keyNotFound(key, .init(codingPath: container.codingPath + [key],
+                                                             debugDescription: "Missing key \(key.stringValue)"))
+            }
+
+            if let value = try? container.decode(T.self, forKey: key) {
                 return value
             }
 
-            if let jsonString = try container.decodeIfPresent(String.self, forKey: key),
+            if let jsonString = try? container.decode(String.self, forKey: key),
                let data = jsonString.data(using: .utf8) {
-                return try JSONDecoder().decode(T.self, from: data)
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601 // Essencial para decodificar datas
+                return try decoder.decode(T.self, from: data)
             }
 
-            throw DecodingError.valueNotFound(
-                T.self,
-                DecodingError.Context(
-                    codingPath: container.codingPath + [key],
-                    debugDescription: "Missing or invalid \(key.stringValue)"
-                )
-            )
+            throw DecodingError.dataCorruptedError(forKey: key,
+                                                  in: container,
+                                                  debugDescription: "Invalid format for \(key.stringValue)")
         }
     }
     
@@ -103,7 +104,6 @@ final class ReviewsViewModel: ObservableObject {
 
                 await scheduleNextReview(for: detail.reviewData, basedOn: difficulty)
                 
-                // --- CHAMADA DIRETA PARA O VIEWMODEL COMPARTILHADO ---
                 await HomeViewModel.shared.userDidCompleteAction()
 
             } catch {

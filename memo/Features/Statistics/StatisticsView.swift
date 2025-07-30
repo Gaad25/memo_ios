@@ -53,9 +53,7 @@ struct StatisticsView: View {
                         }
 
                         // Gráfico 2: Taxa de Acerto por Matéria
-                        let accuracyData = viewModel.subjectPerformances.filter {
-                            $0.accuracy > 0 && $0.accuracy.isFinite
-                        }
+                        let accuracyData = viewModel.subjectPerformances.filter { $0.accuracy > 0 && $0.accuracy.isFinite }
                         if !accuracyData.isEmpty {
                             VStack(alignment: .leading) {
                                 Text("Taxa de Acerto por Matéria")
@@ -83,11 +81,12 @@ struct StatisticsView: View {
                         }
 
                         // Gráfico 3: Distribuição Semanal de Estudo
-                        if viewModel.weeklyDistribution.contains(where: { $0.minutes > 0 }) {
+                        let weeklyData = viewModel.weeklyDistribution.filter { $0.minutes > 0 }
+                        if !weeklyData.isEmpty {
                             VStack(alignment: .leading) {
                                 Text("Distribuição Semanal de Estudo")
                                     .font(.headline)
-                                Chart(viewModel.weeklyDistribution) { day in
+                                Chart(weeklyData) { day in
                                     BarMark(
                                         x: .value("Dia", day.id),
                                         y: .value("Minutos", day.minutes)
@@ -106,10 +105,10 @@ struct StatisticsView: View {
                 .padding()
             }
             .navigationTitle("Estatísticas")
-            .onAppear {
-                Task {
-                    await viewModel.fetchData()
-                }
+            // A correção mais importante para o crash ao navegar:
+            // .task cancela a busca de dados automaticamente se o usuário sair da tela.
+            .task {
+                await viewModel.fetchData()
             }
         }
     }

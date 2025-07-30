@@ -12,6 +12,14 @@ import Foundation
 import SwiftUI
 import Combine
 
+// Helper para "prender" um valor dentro de um intervalo.
+private extension ClosedRange where Bound == Double {
+    /// Clamps a value to be inside the closed range.
+    func clamped(_ value: Double) -> Double {
+        min(max(value, lowerBound), upperBound)
+    }
+}
+
 // Estrutura de dados para o gráfico de desempenho por matéria
 struct SubjectPerformance: Identifiable {
     let id: UUID
@@ -34,55 +42,73 @@ final class StatisticsViewModel: ObservableObject {
     @Published var weeklyDistribution: [DailyStudy] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    
+    private let daySymbols = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+
+    /// Retorna uma Color de uma string hexadecimal. Se a string for inválida ou vazia,
+    /// uma cor padrão é usada em vez de causar um crash.
+    private func color(from hex: String) -> Color {
+        let trimmed = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Se a cor no banco de dados estiver vazia, usa uma cor padrão segura.
+        guard !trimmed.isEmpty else { return .secondary }
+        return Color(hex: trimmed)
+    }
 
     func fetchData() async {
         isLoading = true
         errorMessage = nil
-
+        
+        // Garante que o loading seja desativado, não importa como a função termine.
         defer { isLoading = false }
 
         do {
-            // CORREÇÃO: A forma correta de usar async let com Supabase é aguardar a propriedade .value.
-            // A tipagem explícita [Subject] e [StudySession] também ajuda a evitar erros.
-            async let subjectsTask: [Subject] = try SupabaseManager.shared.client.from("subjects").select().execute().value
-            async let sessionsTask: [StudySession] = try SupabaseManager.shared.client.from("study_sessions").select().execute().value
+            async let subjectsTask: [Subject] = try SupabaseManager.shared.client
+                .from("subjects").select().execute().value
+            async let sessionsTask: [StudySession] = try SupabaseManager.shared.client
+                .from("study_sessions").select().execute().value
 
-            // Agora aguardamos as tarefas em paralelo.
             let (subjects, sessions) = try await (subjectsTask, sessionsTask)
+            
+            // Garante que a tarefa não foi cancelada (pelo usuário saindo da tela)
+            // antes de tentarmos atualizar o estado.
+            guard !Task.isCancelled else { return }
 
             processData(subjects: subjects, sessions: sessions)
 
         } catch {
             errorMessage = "Erro ao buscar dados para estatísticas: \(error.localizedDescription)"
+            // Em caso de erro, zera os dados para não mostrar informações antigas.
+            subjectPerformances = []
+            weeklyDistribution = daySymbols.map { DailyStudy(id: $0, minutes: 0) }
         }
     }
 
     private func processData(subjects: [Subject], sessions: [StudySession]) {
         // --- Processa o desempenho por matéria ---
         var performances: [SubjectPerformance] = []
-
-        // Filtra e sanitiza sessões para evitar valores inesperados no gráfico
-        let validSessions = sessions.compactMap { session -> StudySession? in
-            guard session.durationMinutes > 0,
-                  session.startTime <= session.endTime else { return nil }
-            return session
+        
+        // Filtra e sanitiza os dados de entrada para evitar cálculos com valores inesperados.
+        let validSessions = sessions.filter { session in
+            session.durationMinutes > 0 && session.startTime <= session.endTime
         }
 
         for subject in subjects {
             let subjectSessions = validSessions.filter { $0.subjectId == subject.id }
             guard !subjectSessions.isEmpty else { continue }
 
-            let totalMinutes = subjectSessions.reduce(0) { $0 + max($1.durationMinutes, 0) }
-            let questionsAttempted = subjectSessions.reduce(0) { $0 + max($1.questionsAttempted ?? 0, 0) }
-            let questionsCorrect = subjectSessions.reduce(0) { $0 + max($1.questionsCorrect ?? 0, 0) }
+            let totalMinutes = subjectSessions.reduce(0) { $0 + max(0, $1.durationMinutes) }
+            let questionsAttempted = subjectSessions.compactMap { $0.questionsAttempted }.reduce(0, +)
+            let questionsCorrect = subjectSessions.compactMap { $0.questionsCorrect }.reduce(0, +)
 
+            // Lógica de cálculo de 'accuracy' mais segura.
             let rawAccuracy = questionsAttempted > 0 ? Double(questionsCorrect) / Double(questionsAttempted) : 0.0
-            let accuracy = min(max(rawAccuracy, 0.0), 1.0)
+            // Garante que o valor de 'accuracy' esteja sempre entre 0.0 e 1.0.
+            let accuracy = (0.0...1.0).clamped(rawAccuracy)
 
             performances.append(SubjectPerformance(
                 id: subject.id,
                 name: subject.name,
-                color: Color(hex: subject.color),
+                color: color(from: subject.color),
                 totalMinutes: totalMinutes,
                 accuracy: accuracy
             ))
@@ -94,22 +120,15 @@ final class StatisticsViewModel: ObservableObject {
         var dailyTotals: [Int: Int] = [:]
 
         for session in validSessions {
-            let minutes = max(session.durationMinutes, 0)
-            guard minutes > 0 else { continue }
             let weekday = calendar.component(.weekday, from: session.startTime)
-            dailyTotals[weekday, default: 0] += minutes
+            guard (1...7).contains(weekday) else { continue }
+            dailyTotals[weekday, default: 0] += session.durationMinutes
         }
-
-        // CORREÇÃO: A variável 'distribution' não era modificada, então foi alterada para 'let'.
-        let distribution = [
-            DailyStudy(id: "Dom", minutes: dailyTotals[1] ?? 0),
-            DailyStudy(id: "Seg", minutes: dailyTotals[2] ?? 0),
-            DailyStudy(id: "Ter", minutes: dailyTotals[3] ?? 0),
-            DailyStudy(id: "Qua", minutes: dailyTotals[4] ?? 0),
-            DailyStudy(id: "Qui", minutes: dailyTotals[5] ?? 0),
-            DailyStudy(id: "Sex", minutes: dailyTotals[6] ?? 0),
-            DailyStudy(id: "Sáb", minutes: dailyTotals[7] ?? 0)
-        ]
+        
+        // Lógica de mapeamento mais limpa e segura.
+        let distribution = daySymbols.enumerated().map { index, symbol in
+            DailyStudy(id: symbol, minutes: dailyTotals[index + 1] ?? 0)
+        }
         
         self.weeklyDistribution = distribution
     }

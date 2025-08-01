@@ -18,40 +18,45 @@ final class ReviewsViewModel: ObservableObject {
             case subjectData = "subject_data"
             case sessionNotes = "session_notes"
         }
+        
+        init(reviewId: UUID, reviewData: Review, subjectData: Subject, sessionNotes: String?) {
+            self.reviewId = reviewId
+            self.reviewData = reviewData
+            self.subjectData = subjectData
+            self.sessionNotes = sessionNotes
+        }
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            reviewId = try container.decode(UUID.self, forKey: .reviewId)
-            sessionNotes = try container.decodeIfPresent(String.self, forKey: .sessionNotes)
+            self.reviewId = try container.decode(UUID.self, forKey: .reviewId)
+            self.sessionNotes = try container.decodeIfPresent(String.self, forKey: .sessionNotes)
 
-            reviewData = try Self.decodeMixedJSON(Review.self, from: container, forKey: .reviewData)
-            subjectData = try Self.decodeMixedJSON(Subject.self, from: container, forKey: .subjectData)
+            self.reviewData = try Self.decodeMixedJSON(Review.self, from: container, forKey: .reviewData)
+            self.subjectData = try Self.decodeMixedJSON(Subject.self, from: container, forKey: .subjectData)
         }
 
-        /// Supabase may return nested JSON either as a real object or as a JSON encoded string.
-        /// This helper transparently decodes both representations and surfaces key not found errors properly.
-        private static func decodeMixedJSON<T: Decodable>(_ type: T.Type,
-                                                         from container: KeyedDecodingContainer<CodingKeys>,
-                                                         forKey key: CodingKeys) throws -> T {
-            guard container.contains(key) else {
-                throw DecodingError.keyNotFound(key, .init(codingPath: container.codingPath + [key],
-                                                             debugDescription: "Missing key \(key.stringValue)"))
-            }
-
-            if let value = try? container.decode(T.self, forKey: key) {
-                return value
+        private static func decodeMixedJSON<T: Decodable>(
+            _ type: T.Type,
+            from container: KeyedDecodingContainer<CodingKeys>,
+            forKey key: CodingKeys
+        ) throws -> T {
+            if let object = try? container.decode(T.self, forKey: key) {
+                return object
             }
 
             if let jsonString = try? container.decode(String.self, forKey: key),
                let data = jsonString.data(using: .utf8) {
+                
                 let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601 // Essencial para decodificar datas
+                decoder.dateDecodingStrategy = .iso8601
                 return try decoder.decode(T.self, from: data)
             }
 
-            throw DecodingError.dataCorruptedError(forKey: key,
-                                                  in: container,
-                                                  debugDescription: "Invalid format for \(key.stringValue)")
+            throw DecodingError.dataCorruptedError(
+                forKey: key,
+                in: container,
+                debugDescription: "O campo \(key.stringValue) não é um objeto JSON válido nem uma string JSON decodificável."
+            )
         }
     }
     
@@ -79,7 +84,7 @@ final class ReviewsViewModel: ObservableObject {
                 .value
             
         } catch {
-            self.errorMessage = "Erro ao buscar revisões: \(error.localizedDescription)\n\nVerifique se a função 'get_pending_reviews_with_details' foi criada corretamente no seu banco de dados Supabase."
+            self.errorMessage = "Erro ao buscar revisões: \(error.localizedDescription)"
         }
         
         isLoading = false
@@ -87,11 +92,18 @@ final class ReviewsViewModel: ObservableObject {
     
     func startCompletionFlow(for detail: ReviewDetail) {
         self.reviewToComplete = detail
-        self.showingDifficultySelector = true
+        
+        // Adiciona um pequeno delay para garantir que o SwiftUI processe a mudança de estado
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 segundo
+            self.showingDifficultySelector = true
+        }
     }
     
     func completeReview(with difficulty: ReviewDifficulty) {
         guard let detail = reviewToComplete else { return }
+        
+        // Remove da UI primeiro para uma resposta rápida
         reviewDetails.removeAll { $0.id == detail.id }
         
         Task {
@@ -108,39 +120,75 @@ final class ReviewsViewModel: ObservableObject {
 
             } catch {
                 print("Erro ao completar revisão: \(error.localizedDescription)")
-                await fetchData()
+                await fetchData() // Recarrega os dados em caso de erro.
             }
         }
         
+        // Garante que o estado seja limpo.
         self.reviewToComplete = nil
+        self.showingDifficultySelector = false
     }
     
     private func scheduleNextReview(for previousReview: Review, basedOn difficulty: ReviewDifficulty) async {
-        let cycle = ["1d", "7d", "30d", "90d"]
-        guard let currentIndex = cycle.firstIndex(of: previousReview.reviewInterval) else {
-            print("Intervalo de revisão atual ('\(previousReview.reviewInterval)') não encontrado no ciclo de revisão.")
-            return
-        }
         
-        var nextIndex = currentIndex
-        switch difficulty {
-        case .facil:
-            nextIndex += 1
-        case .medio:
-            nextIndex += 0
-        case .dificil:
-            nextIndex = max(0, currentIndex - 1)
+        let nextIntervalKey: String
+
+        switch previousReview.reviewInterval {
+        case "1d":
+            switch difficulty {
+            case .facil:   nextIntervalKey = "7d"
+            case .medio:   nextIntervalKey = "3d"
+            case .dificil: nextIntervalKey = "1d"
+            }
+        case "3d":
+            switch difficulty {
+            case .facil:   nextIntervalKey = "7d"
+            case .medio:   nextIntervalKey = "7d"
+            case .dificil: nextIntervalKey = "1d"
+            }
+        case "7d":
+            switch difficulty {
+            case .facil:   nextIntervalKey = "30d"
+            case .medio:   nextIntervalKey = "15d"
+            case .dificil: nextIntervalKey = "3d"
+            }
+        case "15d":
+            switch difficulty {
+            case .facil:   nextIntervalKey = "30d"
+            case .medio:   nextIntervalKey = "30d"
+            case .dificil: nextIntervalKey = "7d"
+            }
+        case "30d":
+            switch difficulty {
+            case .facil:   nextIntervalKey = "90d"
+            case .medio:   nextIntervalKey = "90d"
+            case .dificil: nextIntervalKey = "15d"
+            }
+        case "90d":
+            switch difficulty {
+            case .facil:
+                // O ciclo de revisões para esta sessão terminou.
+                print("Ciclo de revisões concluído com sucesso.")
+                return // Não agenda uma nova revisão
+            case .medio:
+                nextIntervalKey = "90d" // Repete o último intervalo
+            case .dificil:
+                nextIntervalKey = "30d" // Regride para 30 dias
+            }
+        default:
+            print("AVISO: Intervalo de revisão desconhecido ('\(previousReview.reviewInterval)'). Agendando para 1 dia.")
+            nextIntervalKey = "1d"
         }
 
-        guard cycle.indices.contains(nextIndex) else {
-            print("Fim do ciclo de revisões para esta sessão.")
+        // Extrai o número de dias do texto do intervalo (ex: "7d" -> 7)
+        guard let daysToAdd = Int(nextIntervalKey.replacingOccurrences(of: "d", with: "")) else {
+            print("ERRO: Não foi possível extrair o número de dias do intervalo: \(nextIntervalKey)")
             return
         }
 
-        let nextIntervalKey = cycle[nextIndex]
-        let daysToAdd = Int(nextIntervalKey.replacingOccurrences(of: "d", with: "")) ?? 1
+        // Calcula a nova data a partir de hoje
         let newReviewDate = Calendar.current.date(byAdding: .day, value: daysToAdd, to: Date())!
-
+        
         struct NewReview: Encodable {
             let userId: UUID, sessionId: UUID, subjectId: UUID, reviewDate: Date, reviewInterval: String
             enum CodingKeys: String, CodingKey {
@@ -159,8 +207,9 @@ final class ReviewsViewModel: ObservableObject {
         
         do {
             try await SupabaseManager.shared.client.from("reviews").insert(nextReview).execute()
+            print("✅ Próxima revisão agendada para \(newReviewDate.formatted()) com intervalo de \(nextIntervalKey).")
         } catch {
-            print("Erro ao agendar a próxima revisão: \(error.localizedDescription)")
+            print("❌ Erro ao agendar a próxima revisão: \(error.localizedDescription)")
         }
     }
 }

@@ -84,19 +84,19 @@ BEGIN
         r.id as review_id,
         json_build_object(
             'id', r.id,
-            'userId', r.user_id,
-            'sessionId', r.session_id,
-            'subjectId', r.subject_id,
-            'reviewDate', r.review_date,
+            'user_id', r.user_id,         -- CORRIGIDO
+            'session_id', r.session_id,     -- CORRIGIDO
+            'subject_id', r.subject_id,     -- CORRIGIDO
+            'review_date', r.review_date,     -- CORRIGIDO
             'status', r.status,
-            'reviewInterval', r.review_interval
+            'review_interval', r.review_interval -- CORRIGIDO
         ) as review_data,
         json_build_object(
             'id', s.id,
             'name', s.name,
             'category', s.category,
             'color', s.color,
-            'userId', s.user_id
+            'user_id', s.user_id         -- CORRIGIDO
         ) as subject_data,
         ss.notes as session_notes
     FROM
@@ -107,7 +107,7 @@ BEGIN
         public.study_sessions ss ON r.session_id = ss.id
     WHERE
         r.status = 'pending'
-        AND r.user_id = auth.uid() -- Garante que só o usuário logado veja suas revisões
+        AND r.user_id = auth.uid()
     ORDER BY
         r.review_date ASC;
 END;

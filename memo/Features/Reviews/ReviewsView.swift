@@ -1,9 +1,3 @@
-//
-//  ReviewsView.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 20/07/25.
-//
 import SwiftUI
 
 struct ReviewsView: View {
@@ -19,6 +13,7 @@ struct ReviewsView: View {
                         .foregroundColor(.red)
                         .padding()
                 } else if viewModel.reviewDetails.isEmpty {
+                    // ... (código para a tela vazia, sem alterações)
                     VStack {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.system(size: 50))
@@ -32,16 +27,14 @@ struct ReviewsView: View {
                     .padding()
                 } else {
                     List {
+                        // --- MUDANÇA PRINCIPAL AQUI ---
+                        // O ForEach agora é extremamente simples.
+                        // Ele apenas cria nossa nova ReviewListRow.
                         ForEach(viewModel.reviewDetails) { detail in
-                            ReviewRowView(detail: detail)
-                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                    Button {
-                                        viewModel.startCompletionFlow(for: detail)
-                                    } label: {
-                                        Label("Concluir", systemImage: "checkmark.circle.fill")
-                                    }
-                                    .tint(.green)
-                                }
+                            ReviewListRow(detail: detail, onComplete: {
+                                // A ação de 'onComplete' simplesmente chama o ViewModel.
+                                viewModel.startCompletionFlow(for: detail)
+                            })
                         }
                     }
                     .listStyle(.insetGrouped)
@@ -50,11 +43,7 @@ struct ReviewsView: View {
             .navigationTitle("Revisões Pendentes")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        Task {
-                            await viewModel.fetchData()
-                        }
-                    } label: {
+                    Button(action: { Task { await viewModel.fetchData() } }) {
                         Image(systemName: "arrow.clockwise")
                     }
                 }
@@ -64,18 +53,22 @@ struct ReviewsView: View {
                     await viewModel.fetchData()
                 }
             }
-            // Alerta que pergunta a dificuldade da revisão
+            // O confirmationDialog, que depende do estado do ViewModel,
+            // agora funciona de forma confiável pois a View está mais simples.
             .confirmationDialog(
-                "Como foi o seu desempenho nesta revisão?",
-                isPresented: $viewModel.showingDifficultySelector,
-                presenting: viewModel.reviewToComplete
-            ) { _ in
+                "Como foi seu desempenho nesta revisão?",
+                isPresented: $viewModel.showingDifficultySelector
+            ) {
                 Button("✅ Fácil") { viewModel.completeReview(with: .facil) }
                 Button("🤔 Médio") { viewModel.completeReview(with: .medio) }
                 Button("🥵 Difícil") { viewModel.completeReview(with: .dificil) }
-                Button("Cancelar", role: .cancel) {}
-            } message: { detail in
-                Text("Avaliar revisão de \"\(detail.subjectData.name)\"")
+                Button("Cancelar", role: .cancel) {
+                    viewModel.reviewToComplete = nil
+                }
+            } message: {
+                if let review = viewModel.reviewToComplete {
+                    Text("Avaliar revisão de \"\(review.subjectData.name)\"")
+                }
             }
         }
     }

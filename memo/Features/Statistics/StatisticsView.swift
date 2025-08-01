@@ -8,6 +8,8 @@
 
 // memo/Features/Statistics/StatisticsView.swift
 
+// memo/Features/Statistics/StatisticsView.swift
+
 import SwiftUI
 import Charts
 
@@ -105,10 +107,11 @@ struct StatisticsView: View {
                 .padding()
             }
             .navigationTitle("Estatísticas")
-            // A correção mais importante para o crash ao navegar:
-            // .task cancela a busca de dados automaticamente se o usuário sair da tela.
-            .task {
-                await viewModel.fetchData()
+            .onAppear {
+                viewModel.startFetching()
+            }
+            .onDisappear {
+                viewModel.cancelFetching()
             }
         }
     }

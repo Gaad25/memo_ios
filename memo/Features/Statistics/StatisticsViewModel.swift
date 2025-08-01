@@ -35,7 +35,6 @@ struct DailyStudy: Identifiable {
     var minutes: Int
 }
 
-
 @MainActor
 final class StatisticsViewModel: ObservableObject {
     @Published var subjectPerformances: [SubjectPerformance] = []
@@ -43,51 +42,64 @@ final class StatisticsViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
+    /// Referência para a tarefa de busca de dados em andamento.
+    private var fetchTask: Task<Void, Never>?
     private let daySymbols = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
 
-    /// Retorna uma Color de uma string hexadecimal. Se a string for inválida ou vazia,
-    /// uma cor padrão é usada em vez de causar um crash.
-    private func color(from hex: String) -> Color {
-        let trimmed = hex.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Se a cor no banco de dados estiver vazia, usa uma cor padrão segura.
-        guard !trimmed.isEmpty else { return .secondary }
-        return Color(hex: trimmed)
+    /// Garante que a tarefa seja cancelada se o ViewModel for destruído.
+    deinit {
+        fetchTask?.cancel()
     }
 
-    func fetchData() async {
+    /// Inicia a busca assíncrona. Qualquer tarefa anterior é cancelada.
+    func startFetching() {
+        fetchTask?.cancel()
+        fetchTask = Task {
+            await fetchData()
+        }
+    }
+
+    /// Cancela a tarefa de busca atual.
+    func cancelFetching() {
+        fetchTask?.cancel()
+    }
+
+    private func fetchData() async {
         isLoading = true
         errorMessage = nil
         
-        // Garante que o loading seja desativado, não importa como a função termine.
         defer { isLoading = false }
 
         do {
-            async let subjectsTask: [Subject] = try SupabaseManager.shared.client
-                .from("subjects").select().execute().value
-            async let sessionsTask: [StudySession] = try SupabaseManager.shared.client
-                .from("study_sessions").select().execute().value
+            async let subjectsTask: [Subject] = try SupabaseManager.shared.client.from("subjects").select().execute().value
+            async let sessionsTask: [StudySession] = try SupabaseManager.shared.client.from("study_sessions").select().execute().value
 
             let (subjects, sessions) = try await (subjectsTask, sessionsTask)
             
-            // Garante que a tarefa não foi cancelada (pelo usuário saindo da tela)
-            // antes de tentarmos atualizar o estado.
+            // Verifica se a tarefa foi cancelada antes de atualizar o estado
             guard !Task.isCancelled else { return }
 
             processData(subjects: subjects, sessions: sessions)
 
+        } catch is CancellationError {
+            // Se o erro for de cancelamento, é esperado. Apenas saia da função.
+            print("Fetch task for Statistics was cancelled.")
+            return
         } catch {
-            errorMessage = "Erro ao buscar dados para estatísticas: \(error.localizedDescription)"
-            // Em caso de erro, zera os dados para não mostrar informações antigas.
-            subjectPerformances = []
-            weeklyDistribution = daySymbols.map { DailyStudy(id: $0, minutes: 0) }
+            errorMessage = "Erro ao buscar dados: \(error.localizedDescription)"
         }
     }
 
+    /// Retorna uma Color de uma string hexadecimal de forma segura.
+    private func color(from hex: String) -> Color {
+        let trimmed = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return .secondary }
+        return Color(hex: trimmed)
+    }
+
     private func processData(subjects: [Subject], sessions: [StudySession]) {
-        // --- Processa o desempenho por matéria ---
         var performances: [SubjectPerformance] = []
         
-        // Filtra e sanitiza os dados de entrada para evitar cálculos com valores inesperados.
         let validSessions = sessions.filter { session in
             session.durationMinutes > 0 && session.startTime <= session.endTime
         }
@@ -100,9 +112,7 @@ final class StatisticsViewModel: ObservableObject {
             let questionsAttempted = subjectSessions.compactMap { $0.questionsAttempted }.reduce(0, +)
             let questionsCorrect = subjectSessions.compactMap { $0.questionsCorrect }.reduce(0, +)
 
-            // Lógica de cálculo de 'accuracy' mais segura.
             let rawAccuracy = questionsAttempted > 0 ? Double(questionsCorrect) / Double(questionsAttempted) : 0.0
-            // Garante que o valor de 'accuracy' esteja sempre entre 0.0 e 1.0.
             let accuracy = (0.0...1.0).clamped(rawAccuracy)
 
             performances.append(SubjectPerformance(
@@ -115,7 +125,6 @@ final class StatisticsViewModel: ObservableObject {
         }
         self.subjectPerformances = performances.sorted { $0.totalMinutes > $1.totalMinutes }
 
-        // --- Processa a distribuição de estudo por dia da semana ---
         let calendar = Calendar.current
         var dailyTotals: [Int: Int] = [:]
 
@@ -125,7 +134,6 @@ final class StatisticsViewModel: ObservableObject {
             dailyTotals[weekday, default: 0] += session.durationMinutes
         }
         
-        // Lógica de mapeamento mais limpa e segura.
         let distribution = daySymbols.enumerated().map { index, symbol in
             DailyStudy(id: symbol, minutes: dailyTotals[index + 1] ?? 0)
         }

@@ -21,14 +21,6 @@ struct ReviewRowView: View {
                     Text("Agendado para: \(detail.reviewData.reviewDate.formatted(date: .abbreviated, time: .omitted))")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
-                    Text("Intervalo: \(detail.reviewData.reviewInterval)")
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.2))
-                        .cornerRadius(6)
                 }
                 Spacer()
                 

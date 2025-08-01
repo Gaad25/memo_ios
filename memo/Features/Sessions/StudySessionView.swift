@@ -230,12 +230,6 @@ struct StudySessionView: View {
     }
     
     private func scheduleReviews(for session: ReturnedSession) async {
-        let reviewIntervals: [String: (interval: TimeInterval, displayName: String)] = [
-            "1d": (86400, "1 dia"),
-            "7d": (604800, "7 dias"),
-            "30d": (2592000, "30 dias")
-        ]
-
         struct NewReview: Encodable {
             let userId: UUID, sessionId: UUID, subjectId: UUID, reviewDate: Date, reviewInterval: String
             
@@ -244,26 +238,24 @@ struct StudySessionView: View {
                      reviewDate = "review_date", reviewInterval = "review_interval"
             }
         }
-
-        var reviewsToInsert: [NewReview] = []
-
-        for (key, value) in reviewIntervals {
-            let reviewDate = session.startTime.addingTimeInterval(value.interval)
-            let newReview = NewReview(
-                userId: session.userId,
-                sessionId: session.id,
-                subjectId: session.subjectId,
-                reviewDate: reviewDate,
-                reviewInterval: key
-            )
-            reviewsToInsert.append(newReview)
-            scheduleLocalNotification(subjectName: subject.name, reviewDate: reviewDate, intervalText: value.displayName)
-        }
+        let firstReviewDate = Calendar.current.date(byAdding: .day, value: 1, to: session.startTime)!
         
+        let firstReview = NewReview(
+            userId: session.userId,
+            sessionId: session.id,
+            subjectId: session.subjectId,
+            reviewDate: firstReviewDate,
+            reviewInterval: "1d"
+        )
         do {
-            try await SupabaseManager.shared.client.from("reviews").insert(reviewsToInsert).execute()
+            try await SupabaseManager.shared.client.from("reviews").insert(firstReview).execute()
+            
+            // Agendamos também a notificação local para esta primeira revisão.
+            scheduleLocalNotification(subjectName: subject.name, reviewDate: firstReviewDate, intervalText: "1 dia")
+            print("✅ Primeira revisão agendada para \(firstReviewDate.formatted()).")
+
         } catch {
-            print("Erro ao agendar revisões no Supabase: \(error.localizedDescription)")
+            print("❌ Erro ao agendar a primeira revisão no Supabase: \(error.localizedDescription)")
         }
     }
 

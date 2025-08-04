@@ -260,25 +260,43 @@ struct StudySessionView: View {
     }
 
     private func scheduleLocalNotification(subjectName: String, reviewDate: Date, intervalText: String) {
-        let content = UNMutableNotificationContent()
-        content.title = "Memo: Hora da Revisão!"
-        content.body = "Está na hora de revisar o conteúdo de '\(subjectName)' (revisão de \(intervalText))."
-        content.sound = .default
-        
-        var triggerDateComponents = Calendar.current.dateComponents([.year, .month, .day], from: reviewDate)
-        triggerDateComponents.hour = 9
-        triggerDateComponents.minute = 0
-        
-        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDateComponents, repeats: false)
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+            // --- INÍCIO DA MODIFICAÇÃO (Fase 2) ---
+            // 1. Verifica se as notificações estão habilitadas pelo usuário.
+            let notificationsEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.notificationsEnabled)
+            guard notificationsEnabled else {
+                print("🔔 Notificações desabilitadas pelo usuário. Nenhuma notificação agendada.")
+                return
+            }
 
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error {
-                print("Erro ao agendar notificação local: \(error.localizedDescription)")
-            } else {
-                let scheduledDate = Calendar.current.date(from: triggerDateComponents)
-                print("Notificação para '\(subjectName)' agendada para \(scheduledDate?.formatted() ?? "data inválida").")
+            // 2. Carrega a hora de notificação preferida do usuário.
+            let notificationTime = (UserDefaults.standard.object(forKey: UserDefaultsKeys.notificationTime) as? Date) ?? {
+                var components = DateComponents()
+                components.hour = 9
+                components.minute = 0
+                return Calendar.current.date(from: components) ?? Date()
+            }()
+            // --- FIM DA MODIFICAÇÃO ---
+
+            let content = UNMutableNotificationContent()
+            content.title = "Memo: Hora da Revisão!"
+            content.body = "Está na hora de revisar o conteúdo de '\(subjectName)' (revisão de \(intervalText))."
+            content.sound = .default
+            
+            // 3. Usa a data da revisão com a hora e minuto definidos pelo usuário.
+            var triggerDateComponents = Calendar.current.dateComponents([.year, .month, .day], from: reviewDate)
+            triggerDateComponents.hour = Calendar.current.component(.hour, from: notificationTime)
+            triggerDateComponents.minute = Calendar.current.component(.minute, from: notificationTime)
+            
+            let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDateComponents, repeats: false)
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Erro ao agendar notificação local: \(error.localizedDescription)")
+                } else {
+                    let scheduledDate = Calendar.current.date(from: triggerDateComponents)
+                    print("Notificação para '\(subjectName)' agendada para \(scheduledDate?.formatted() ?? "data inválida").")
+                }
             }
         }
     }
-}

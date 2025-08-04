@@ -61,7 +61,8 @@ final class AllSessionsViewModel: ObservableObject {
             self.sessions = try await fetchSessions()
             sortSessions()
         } catch {
-             self.errorMessage = "Erro ao recarregar as sessões: \(error.localizedDescription)"
+            self.errorMessage = "Não foi possível atualizar as sessões."
+            print("❌ Erro em refreshSessions (AllSessionsViewModel): \(error.localizedDescription)")
         }
         isLoading = false
     }

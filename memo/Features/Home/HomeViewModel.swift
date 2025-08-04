@@ -231,43 +231,40 @@ final class HomeViewModel: ObservableObject {
         }
     }
     
-    func deleteSubject(at offsets: IndexSet) {
-        let subjectsToDelete = offsets.map { self.subjects[$0] }
-        let subjectIdsToDelete = subjectsToDelete.map { $0.id.uuidString }
+        func deleteSubject(_ subjectToDelete: Subject) {
+            // Remove da UI primeiro para uma resposta rápida
+            subjects.removeAll { $0.id == subjectToDelete.id }
+            
+            Task {
+                do {
+                    try await SupabaseManager.shared.client
+                        .from("subjects")
+                        .delete()
+                        .eq("id", value: subjectToDelete.id) // Usamos o ID do objeto
+                        .execute()
+                } catch {
+                    print("❌ Erro ao apagar matéria: \(error.localizedDescription)")
+                    // Se der erro, recarrega tudo para garantir consistência
+                    await refreshAllDashboardData()
+                }
+            }
+        }
         
-        self.subjects.remove(atOffsets: offsets)
-        
-        Task {
-            do {
-                try await SupabaseManager.shared.client
-                    .from("subjects")
-                    .delete()
-                    .in("id", values: subjectIdsToDelete)
-                    .execute()
-            } catch {
-                print("❌ Erro ao apagar matéria: \(error.localizedDescription)")
-                await refreshAllDashboardData()
+        func deleteGoal(_ goalToDelete: StudyGoalViewData) {
+            // Remove da UI primeiro
+            goals.removeAll { $0.id == goalToDelete.id }
+
+            Task {
+                do {
+                    try await SupabaseManager.shared.client
+                        .from("goals")
+                        .delete()
+                        .eq("id", value: goalToDelete.id) // Usamos o ID do objeto
+                        .execute()
+                } catch {
+                    print("❌ Erro ao apagar meta: \(error.localizedDescription)")
+                    await refreshAllDashboardData()
+                }
             }
         }
     }
-    
-    func deleteGoal(at offsets: IndexSet) {
-        let goalsToDelete = offsets.map { self.goals[$0] }
-        let goalIdsToDelete = goalsToDelete.map { $0.id.uuidString }
-
-        self.goals.remove(atOffsets: offsets)
-
-        Task {
-            do {
-                try await SupabaseManager.shared.client
-                    .from("goals")
-                    .delete()
-                    .in("id", values: goalIdsToDelete)
-                    .execute()
-            } catch {
-                print("❌ Erro ao apagar meta: \(error.localizedDescription)")
-                await refreshAllDashboardData()
-            }
-        }
-    }
-}

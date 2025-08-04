@@ -4,56 +4,86 @@
 //
 //  Created by Gabriel Gad Costa Weyers on 20/07/25.
 //
+
 import SwiftUI
 
 struct ReviewRowView: View {
+    // A view agora recebe o ViewModel e o detalhe da revisão
+    @ObservedObject var viewModel: ReviewsViewModel
     let detail: ReviewsViewModel.ReviewDetail
+    
     @State private var isExpanded = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
+        VStack(alignment: .leading, spacing: 0) {
+            // --- CABEÇALHO DO CARD ---
+            HStack(spacing: 16) {
+                Capsule()
+                    .fill(detail.subjectData.swiftUIColor)
+                    .frame(width: 5)
+                
                 VStack(alignment: .leading, spacing: 4) {
                     Text(detail.subjectData.name)
                         .font(.headline)
-                        .foregroundColor(detail.subjectData.swiftUIColor)
                     
-                    Text("Agendado para: \(detail.reviewData.reviewDate.formatted(date: .abbreviated, time: .omitted))")
+                    Text("Revisão de \(detail.reviewData.reviewInterval)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Text("Agendada para: \(detail.reviewData.reviewDate.formatted(date: .abbreviated, time: .omitted))")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+                
                 Spacer()
                 
-                // Mostra um indicador se houver anotações e permite expandir
+                // Botão para expandir/recolher as anotações
                 if let notes = detail.sessionNotes, !notes.isEmpty {
-                    Image(systemName: isExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
-                        .foregroundColor(.secondary)
-                        .font(.title3)
+                    Button(action: {
+                        withAnimation(.spring()) {
+                            isExpanded.toggle()
+                        }
+                    }) {
+                        Image(systemName: "note.text")
+                            .font(.title2)
+                            .foregroundColor(isExpanded ? .blue : .secondary)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            
-            // Mostra as anotações se a linha estiver expandida
+            .padding()
+
+            // --- SEÇÃO DE NOTAS (EXPANSÍVEL) ---
             if isExpanded, let notes = detail.sessionNotes, !notes.isEmpty {
-                VStack(alignment: .leading) {
-                    Divider().padding(.vertical, 4)
+                VStack(alignment: .leading, spacing: 8) {
+                    Divider()
                     Text("Anotações da Sessão Original:")
                         .font(.caption.bold())
+                        .padding(.horizontal)
                     Text(notes)
                         .font(.callout)
                         .foregroundColor(.secondary)
+                        .padding(.horizontal)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom)
             }
-        }
-        .padding(.vertical, 8)
-        .contentShape(Rectangle()) // Garante que toda a área da célula seja tocável
-        .onTapGesture {
-            // Só permite expandir se houver anotações
-            if let notes = detail.sessionNotes, !notes.isEmpty {
-                withAnimation(.spring()) {
-                    isExpanded.toggle()
+            
+            // --- BOTÃO DE AÇÃO ---
+            Divider()
+            Button(action: {
+                viewModel.startCompletionFlow(for: detail)
+            }) {
+                HStack {
+                    Spacer()
+                    Image(systemName: "checkmark.circle.fill")
+                    Text("Concluir Revisão")
+                    Spacer()
                 }
             }
+            .padding()
+            .background(Color.green.opacity(0.1)) // Fundo sutil para o botão
         }
+        .background(CardBackground()) // Reutilizando nosso estilo de card
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

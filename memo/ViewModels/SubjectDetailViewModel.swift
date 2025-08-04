@@ -28,7 +28,8 @@ final class SubjectDetailViewModel: ObservableObject {
 
             self.sessions = fetchedSessions
         } catch {
-            self.errorMessage = "Erro ao buscar sessões: \(error.localizedDescription)"
+            self.errorMessage = "Não foi possível carregar o histórico de sessões."
+            print("❌ Erro em fetchSessions (SubjectDetailViewModel): \(error.localizedDescription)")
         }
         
         isLoading = false

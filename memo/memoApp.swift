@@ -27,6 +27,7 @@ struct MemoApp: App {
         } else if session.isLoggedIn {
             MainTabView()
                 .environmentObject(session)
+                .environmentObject(HomeViewModel.shared)
         } else {
             ContentView()
                 .environmentObject(session)

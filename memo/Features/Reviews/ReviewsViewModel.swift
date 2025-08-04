@@ -1,9 +1,11 @@
+// memo/Features/Reviews/ReviewsViewModel.swift
+
 import Foundation
 import SwiftUI
 
 @MainActor
 final class ReviewsViewModel: ObservableObject {
-    // Este struct representa uma revisão com todos os dados necessários para a view.
+    // A struct ReviewDetail continua a mesma, com a correção na decodificação
     struct ReviewDetail: Identifiable, Decodable {
         let reviewId: UUID
         let reviewData: Review
@@ -19,8 +21,8 @@ final class ReviewsViewModel: ObservableObject {
             case sessionNotes = "session_notes"
         }
         
-        init(reviewId: UUID, reviewData: Review, subjectData: Subject, sessionNotes: String?) {
-            self.reviewId = reviewId
+        init(reviewData: Review, subjectData: Subject, sessionNotes: String?) {
+            self.reviewId = reviewData.id
             self.reviewData = reviewData
             self.subjectData = subjectData
             self.sessionNotes = sessionNotes
@@ -48,7 +50,13 @@ final class ReviewsViewModel: ObservableObject {
                let data = jsonString.data(using: .utf8) {
                 
                 let decoder = JSONDecoder()
+                
+                // 👇 --- INÍCIO DA CORREÇÃO NO DECODIFICADOR ---
+                // Usamos a estratégia .iso8601 que é mais flexível e já embutida.
+                // Ela lida com os diferentes formatos que o Supabase pode enviar.
                 decoder.dateDecodingStrategy = .iso8601
+                // --- FIM DA CORREÇÃO NO DECODIFICADOR ---
+                
                 return try decoder.decode(T.self, from: data)
             }
 
@@ -69,7 +77,7 @@ final class ReviewsViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     @Published var reviewToComplete: ReviewDetail?
-    @Published var showingDifficultySelector = false
+    @Published var showingCustomDifficultySelector = false
     
     func fetchData() async {
         guard !isLoading else { return }
@@ -84,7 +92,8 @@ final class ReviewsViewModel: ObservableObject {
                 .value
             
         } catch {
-            self.errorMessage = "Erro ao buscar revisões: \(error.localizedDescription)"
+            self.errorMessage = "Não foi possível buscar suas revisões."
+            print("❌ Erro em fetchData (ReviewsViewModel): \(error.localizedDescription)")
         }
         
         isLoading = false
@@ -92,18 +101,12 @@ final class ReviewsViewModel: ObservableObject {
     
     func startCompletionFlow(for detail: ReviewDetail) {
         self.reviewToComplete = detail
-        
-        // Adiciona um pequeno delay para garantir que o SwiftUI processe a mudança de estado
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 segundo
-            self.showingDifficultySelector = true
-        }
+        self.showingCustomDifficultySelector = true
     }
     
     func completeReview(with difficulty: ReviewDifficulty) {
         guard let detail = reviewToComplete else { return }
         
-        // Remove da UI primeiro para uma resposta rápida
         reviewDetails.removeAll { $0.id == detail.id }
         
         Task {
@@ -120,15 +123,15 @@ final class ReviewsViewModel: ObservableObject {
 
             } catch {
                 print("Erro ao completar revisão: \(error.localizedDescription)")
-                await fetchData() // Recarrega os dados em caso de erro.
+                self.errorMessage = "Erro ao salvar a revisão. Tente novamente."
+                await fetchData()
             }
         }
         
-        // Garante que o estado seja limpo.
         self.reviewToComplete = nil
-        self.showingDifficultySelector = false
     }
     
+    // A função scheduleNextReview continua a mesma
     private func scheduleNextReview(for previousReview: Review, basedOn difficulty: ReviewDifficulty) async {
         
         let nextIntervalKey: String
@@ -167,26 +170,23 @@ final class ReviewsViewModel: ObservableObject {
         case "90d":
             switch difficulty {
             case .facil:
-                // O ciclo de revisões para esta sessão terminou.
                 print("Ciclo de revisões concluído com sucesso.")
-                return // Não agenda uma nova revisão
+                return
             case .medio:
-                nextIntervalKey = "90d" // Repete o último intervalo
+                nextIntervalKey = "90d"
             case .dificil:
-                nextIntervalKey = "30d" // Regride para 30 dias
+                nextIntervalKey = "30d"
             }
         default:
             print("AVISO: Intervalo de revisão desconhecido ('\(previousReview.reviewInterval)'). Agendando para 1 dia.")
             nextIntervalKey = "1d"
         }
 
-        // Extrai o número de dias do texto do intervalo (ex: "7d" -> 7)
         guard let daysToAdd = Int(nextIntervalKey.replacingOccurrences(of: "d", with: "")) else {
             print("ERRO: Não foi possível extrair o número de dias do intervalo: \(nextIntervalKey)")
             return
         }
 
-        // Calcula a nova data a partir de hoje
         let newReviewDate = Calendar.current.date(byAdding: .day, value: daysToAdd, to: Date())!
         
         struct NewReview: Encodable {

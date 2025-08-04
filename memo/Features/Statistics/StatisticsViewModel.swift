@@ -86,7 +86,8 @@ final class StatisticsViewModel: ObservableObject {
             print("Fetch task for Statistics was cancelled.")
             return
         } catch {
-            errorMessage = "Erro ao buscar dados: \(error.localizedDescription)"
+            errorMessage = "Não foi possível carregar as estatísticas."
+            print("❌ Erro em fetchData (StatisticsViewModel): \(error.localizedDescription)")
         }
     }
 

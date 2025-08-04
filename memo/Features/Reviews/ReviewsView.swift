@@ -1,3 +1,5 @@
+// memo/Features/Reviews/ReviewsView.swift
+
 import SwiftUI
 
 struct ReviewsView: View {
@@ -5,41 +7,41 @@ struct ReviewsView: View {
     
     var body: some View {
         NavigationStack {
-            VStack {
-                if viewModel.isLoading {
-                    ProgressView()
-                } else if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                        .foregroundColor(.red)
-                        .padding()
-                } else if viewModel.reviewDetails.isEmpty {
-                    // ... (código para a tela vazia, sem alterações)
-                    VStack {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 50))
-                            .foregroundColor(.green)
-                            .padding(.bottom, 8)
-                        Text("Nenhuma revisão pendente!")
-                            .font(.headline)
-                        Text("Você está em dia com seus estudos.")
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                } else {
-                    List {
-                        // --- MUDANÇA PRINCIPAL AQUI ---
-                        // O ForEach agora é extremamente simples.
-                        // Ele apenas cria nossa nova ReviewListRow.
+            ScrollView {
+                VStack(spacing: 16) {
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .padding(.top, 50)
+                    } else if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .padding()
+                    } else if viewModel.reviewDetails.isEmpty {
+                        // --- EMPTY STATE ESTILIZADO ---
+                        VStack(spacing: 12) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(.green)
+                            Text("Nenhuma revisão pendente!")
+                                .font(.headline)
+                            Text("Você está em dia com seus estudos.")
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(32)
+                        .frame(maxWidth: .infinity)
+                        .background(CardBackground())
+                        .padding(.top, 30)
+                        
+                    } else {
+                        // --- LISTA DE CARDS ---
                         ForEach(viewModel.reviewDetails) { detail in
-                            ReviewListRow(detail: detail, onComplete: {
-                                // A ação de 'onComplete' simplesmente chama o ViewModel.
-                                viewModel.startCompletionFlow(for: detail)
-                            })
+                            ReviewRowView(viewModel: viewModel, detail: detail)
                         }
                     }
-                    .listStyle(.insetGrouped)
                 }
+                .padding()
             }
+            .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Revisões Pendentes")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -53,21 +55,15 @@ struct ReviewsView: View {
                     await viewModel.fetchData()
                 }
             }
-            // O confirmationDialog, que depende do estado do ViewModel,
-            // agora funciona de forma confiável pois a View está mais simples.
-            .confirmationDialog(
-                "Como foi seu desempenho nesta revisão?",
-                isPresented: $viewModel.showingDifficultySelector
-            ) {
-                Button("✅ Fácil") { viewModel.completeReview(with: .facil) }
-                Button("🤔 Médio") { viewModel.completeReview(with: .medio) }
-                Button("🥵 Difícil") { viewModel.completeReview(with: .dificil) }
-                Button("Cancelar", role: .cancel) {
-                    viewModel.reviewToComplete = nil
-                }
-            } message: {
+            // 👇 O .confirmationDialog antigo foi removido e substituído por este .sheet
+            .sheet(isPresented: $viewModel.showingCustomDifficultySelector) {
                 if let review = viewModel.reviewToComplete {
-                    Text("Avaliar revisão de \"\(review.subjectData.name)\"")
+                    CustomReviewConfirmationDialogView(
+                        viewModel: viewModel,
+                        subjectName: review.subjectData.name
+                    )
+                    // Define uma altura que se ajusta ao conteúdo, ideal para diálogos
+                    .presentationDetents([.fraction(0.50), .medium])
                 }
             }
         }

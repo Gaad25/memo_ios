@@ -20,75 +20,83 @@ struct RegisterView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
+            ZStack {
+                // Fundo gradiente sutil, igual ao do Login
+                LinearGradient(
+                    gradient: Gradient(colors: [Color.blue.opacity(0.1), Color(uiColor: .systemBackground)]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
 
-                    // Logo + título
-                    Image("ic_memo_logo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: 200)
-                        .padding(.top, 32)
+                ScrollView {
+                    VStack(spacing: 20) {
 
-                    Text("Crie sua conta")
-                        .font(.title.bold())
-                        .padding(.bottom, 16)
+                        Text("Crie sua conta")
+                            .font(.title2.bold())
+                            .padding(.top, 40)
+                            .padding(.bottom, 20)
 
-                    // Campos
-                    TextField("Nome completo", text: $nome)
-                        .styledTextField()
+                        // Campos
+                        VStack(spacing: 16) {
+                            TextField("Nome completo", text: $nome)
+                                .styledTextField() // Reutilizando seu modifier!
 
-                    TextField("E-mail", text: $email)
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                        .styledTextField()
+                            TextField("E-mail", text: $email)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+                                .styledTextField()
 
-                    SecureField("Senha", text: $senha)
-                        .styledTextField()
+                            SecureField("Senha", text: $senha)
+                                .styledTextField()
 
-                    SecureField("Confirmar senha", text: $confirmarSenha)
-                        .styledTextField()
+                            SecureField("Confirmar senha", text: $confirmarSenha)
+                                .styledTextField()
+                        }
 
-                    // Erro
-                    if showError {
-                        Text(errorMessage)
-                            .font(.footnote.bold())
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.center)
+                        // Erro
+                        if showError {
+                            Text(errorMessage)
+                                .font(.footnote.bold())
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+
+                        // Termos
+                        Toggle(isOn: $aceitarTermos) {
+                            Text("Aceito os termos de uso e política de privacidade")
+                                .font(.caption)
+                        }
+                        .toggleStyle(CheckboxToggleStyle())
+                        .padding(.vertical, 10)
+
+                        // Loading
+                        if isLoading { ProgressView().padding(.vertical, 16) }
+
+                        // Botão Cadastrar
+                        Button("Cadastrar", action: { Task { await registerUser() } })
+                            .buttonStyle(PrimaryButtonStyle()) // Aplicando o estilo aqui também
+                            .disabled(!aceitarTermos) // Boa prática desabilitar se os termos não forem aceitos
+
+                        Spacer()
+                        
+                        // Já tem conta
+                        Button("Já tem uma conta? **Faça login**") { dismiss() }
+                            .font(.subheadline)
+                            .padding(.top, 30)
                     }
-
-                    // Termos
-                    Toggle(isOn: $aceitarTermos) {
-                        Text("Aceito os termos de uso e política de privacidade")
-                            .font(.footnote)
-                    }
-
-                    // Loading
-                    if isLoading { ProgressView() }
-
-                    // Botão Cadastrar
-                    Button("Cadastrar", action: { Task { await registerUser() } })
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                        .padding(.vertical)
-
-                    // Já tem conta
-                    Button("Já tem uma conta? Faça login") { dismiss() }
-                        .foregroundColor(.blue)
-                        .font(.footnote)
+                    .padding(24)
                 }
-                .padding(24)
             }
-            .background(Color(uiColor: .systemGroupedBackground))
             .navigationBarHidden(true)
             .alert("Cadastro realizado!", isPresented: $showSuccessAlert) {
                 Button("OK") { dismiss() }
             }
         }
     }
+
+    // Seu modifier `styledTextField` já está ótimo, pode mantê-lo como está no final do arquivo.
 
     // MARK: - Cadastro + login
     @MainActor

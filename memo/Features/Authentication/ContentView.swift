@@ -2,23 +2,6 @@
 
 import SwiftUI
 
-// ... (O CheckboxToggleStyle continua o mesmo)
-struct CheckboxToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        Button(action: {
-            configuration.isOn.toggle()
-        }, label: {
-            HStack {
-                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                    .foregroundColor(configuration.isOn ? .accentColor : .secondary)
-                configuration.label
-            }
-        })
-        .buttonStyle(.plain)
-    }
-}
-
-
 struct ContentView: View {
     @EnvironmentObject private var session: SessionManager
 
@@ -35,111 +18,119 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 0) {
+            ZStack {
+                LinearGradient(
+                    gradient: Gradient(colors: [Color.blue.opacity(0.1), Color(uiColor: .systemBackground)]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
 
-                    // --- Logo e título ---
-                    Image("ic_memo_logo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 300, height: 150)
-                        .padding(.bottom, 32)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        Image("ic_memo_logo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 250, height: 125)
+                            .padding(.vertical, 40)
 
-                    Text("Entrar")
-                        .font(.system(size: 24, weight: .bold))
-                        .padding(.bottom, 16)
+                        Text("Entrar na sua conta")
+                            .font(.title2.bold())
+                            .padding(.bottom, 20)
 
-                    // --- Campos ---
-                    TextField("E-mail", text: $email)
-                        .padding(12)
-                        .background(RoundedRectangle(cornerRadius: 8).stroke(Color.gray))
-                        .keyboardType(.emailAddress)
-                        .autocapitalization(.none)
-                        .padding(.bottom, 16)
+                        VStack(spacing: 16) {
+                            TextField("E-mail", text: $email)
+                                .padding(12)
+                                .background(.background)
+                                .cornerRadius(8)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
 
-                    SecureField("Senha", text: $senha)
-                        .padding(12)
-                        .background(RoundedRectangle(cornerRadius: 8).stroke(Color.gray))
-                        .padding(.bottom, 8)
-
-                    HStack {
-                        Spacer()
-                        // MODIFICAÇÃO: Transformado em botão
-                        Button("Esqueceu a senha?") {
-                            showingForgotPassword = true
+                            SecureField("Senha", text: $senha)
+                                .padding(12)
+                                .background(.background)
+                                .cornerRadius(8)
                         }
-                        .font(.system(size: 14))
-                        .foregroundColor(.blue)
-                    }
-                    .padding(.bottom, 16)
 
-                    // --- Erro ---
-                    if showError {
-                        Text(errorMessage)
-                            .font(.system(size: 14))
-                            .foregroundColor(.red)
-                            .multilineTextAlignment(.center)
-                            .padding(.bottom, 16)
-                    }
+                        // --- INÍCIO DA MUDANÇA ---
+                        HStack {
+                            // Adicionamos o Toggle de "Lembrar credenciais" aqui
+                            Toggle(isOn: $rememberCredentials) {
+                                Text("Lembrar")
+                                    .font(.footnote)
+                            }
+                            .toggleStyle(CheckboxToggleStyle()) // Usando o estilo customizado
 
-                    // --- Toggle lembrar ---
-                    HStack {
-                        Toggle(isOn: $rememberCredentials) {
-                            Text("Lembrar credenciais")
+                            Spacer()
+
+                            Button("Esqueceu a senha?") {
+                                showingForgotPassword = true
+                            }
+                            .font(.footnote)
+                            .foregroundColor(.blue)
                         }
-                        .toggleStyle(CheckboxToggleStyle())
+                        .padding(.bottom, 10)
+                        // --- FIM DA MUDANÇA ---
+
+                        if showError {
+                            Text(errorMessage)
+                                .font(.footnote)
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+
+                        if isLoading {
+                            ProgressView().padding(.vertical, 16)
+                        }
+
+                        Button("Entrar") {
+                            Task { await login() }
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .padding(.top, 10)
+
+                        Text("OU")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.vertical, 20)
+
+                        Button(action: { /* Lógica de login com Google */ }) {
+                            HStack {
+                                Image("ic_google_logo")
+                                    .resizable()
+                                    .frame(width: 24, height: 24)
+                                Text("Entrar com o Google")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(.background)
+                        .cornerRadius(12)
+                        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+
                         Spacer()
+
+                        Button(action: { navigateToRegister = true }) {
+                            Text("Não tem uma conta? **Crie uma agora**")
+                                .font(.subheadline)
+                        }
+                        .padding(.top, 30)
                     }
-                    .padding(.bottom, 16)
-
-                    // --- Loading ---
-                    if isLoading { ProgressView().padding(.bottom, 16) }
-
-                    // --- Botão Entrar ---
-                    Button(action: { Task { await login() } }) {
-                        Text("Entrar")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
-                    }
-                    .padding(.bottom, 24)
-
-                    // --- Social login e registrar ---
-                    Text("──────────  Entrar com  ─────────")
-                        .font(.system(size: 14))
-                        .foregroundColor(.gray)
-                        .padding(.bottom, 16)
-
-                    Image("ic_google_logo")
-                        .resizable()
-                        .frame(width: 48, height: 48)
-                        .padding(.bottom, 24)
-
-                    Button(action: { navigateToRegister = true }) {
-                        Text("Criar Conta")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
-                    }
-                    .padding(.bottom, 16)
-                    .navigationDestination(isPresented: $navigateToRegister) {
-                        RegisterView().environmentObject(session)
-                    }
+                    .padding(.horizontal, 24)
                 }
-                .padding(24)
             }
-            .background(Color(uiColor: .systemGroupedBackground))
-            // NOVO MODIFICADOR: Apresenta a tela como uma "folha" modal
+            .navigationBarHidden(true)
             .sheet(isPresented: $showingForgotPassword) {
                 ForgotPasswordView().environmentObject(session)
             }
+            .navigationDestination(isPresented: $navigateToRegister) {
+                RegisterView().environmentObject(session)
+            }
         }
     }
-
     // MARK: - Ação login (usa SessionManager)
     func login() async {
         let trimmedEmail  = email.trimmingCharacters(in: .whitespacesAndNewlines)

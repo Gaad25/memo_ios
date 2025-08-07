@@ -1,4 +1,3 @@
-
 # macOS
 .DS_Store
 
@@ -10,7 +9,7 @@ xcuserdata/
 *.xcodeproj/project.xcworkspace/
 
 # Arquivos sensíveis
-memo/Supabase-Keys.plist
+confidential.yml
 
 # Swift Package Manager
 .build/

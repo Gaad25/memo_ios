@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CE5550932E45311D0087FD7A /* ConfidentialKit in Frameworks */ = {isa = PBXBuildFile; productRef = CE5550922E45311D0087FD7A /* ConfidentialKit */; };
 		CEA61F4B2DAFDDE700125A26 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = CEA61F4A2DAFDDE700125A26 /* Auth */; };
 		CEA61F4D2DAFDDE700125A26 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = CEA61F4C2DAFDDE700125A26 /* Functions */; };
 		CEA61F4F2DAFDDE700125A26 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = CEA61F4E2DAFDDE700125A26 /* PostgREST */; };
@@ -61,6 +62,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CE5550932E45311D0087FD7A /* ConfidentialKit in Frameworks */,
 				CEA61F4F2DAFDDE700125A26 /* PostgREST in Frameworks */,
 				CEA61F4D2DAFDDE700125A26 /* Functions in Frameworks */,
 				CEA61F552DAFDDE700125A26 /* Supabase in Frameworks */,
@@ -129,6 +131,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				CE5550912E4530E90087FD7A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				CEDD5DA22D9CD66900550802 /* memo */,
@@ -141,6 +144,7 @@
 				CEA61F502DAFDDE700125A26 /* Realtime */,
 				CEA61F522DAFDDE700125A26 /* Storage */,
 				CEA61F542DAFDDE700125A26 /* Supabase */,
+				CE5550922E45311D0087FD7A /* ConfidentialKit */,
 			);
 			productName = memo;
 			productReference = CEDD5DA02D9CD66900550802 /* memo.app */;
@@ -226,6 +230,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				CEA61F412DAFDA7E00125A26 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				CE314E082E4429190042D8FB /* XCRemoteSwiftPackageReference "swift-confidential" */,
+				CE55508F2E4530C00087FD7A /* XCRemoteSwiftPackageReference "swift-confidential-plugin" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CEDD5DA12D9CD66900550802 /* Products */;
@@ -288,6 +294,10 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CE5550912E4530E90087FD7A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = CE5550902E4530E90087FD7A /* Confidential */;
+		};
 		CEDD5DB22D9CD66A00550802 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = CEDD5D9F2D9CD66900550802 /* memo */;
@@ -592,6 +602,22 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		CE314E082E4429190042D8FB /* XCRemoteSwiftPackageReference "swift-confidential" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/securevale/swift-confidential.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.4.1;
+			};
+		};
+		CE55508F2E4530C00087FD7A /* XCRemoteSwiftPackageReference "swift-confidential-plugin" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/securevale/swift-confidential-plugin";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.4.1;
+			};
+		};
 		CEA61F412DAFDA7E00125A26 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/supabase-community/supabase-swift";
@@ -603,6 +629,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		CE5550902E4530E90087FD7A /* Confidential */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CE55508F2E4530C00087FD7A /* XCRemoteSwiftPackageReference "swift-confidential-plugin" */;
+			productName = "plugin:Confidential";
+		};
+		CE5550922E45311D0087FD7A /* ConfidentialKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CE314E082E4429190042D8FB /* XCRemoteSwiftPackageReference "swift-confidential" */;
+			productName = ConfidentialKit;
+		};
 		CEA61F4A2DAFDDE700125A26 /* Auth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = CEA61F412DAFDA7E00125A26 /* XCRemoteSwiftPackageReference "supabase-swift" */;

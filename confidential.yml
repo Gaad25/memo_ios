@@ -1,0 +1,9 @@
+algorithm:
+  - encrypt using aes-256-gcm
+  - shuffle
+defaultNamespace: create Secrets
+secrets:
+  - name: supabaseURL
+    value: "https://rrbebclkhexlfkexqrvf.supabase.co"
+  - name: supabaseKey
+    value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyYmViY2xraGV4bGZrZXhxcnZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1OTYwMDAsImV4cCI6MjA3MDE3MjAwMH0.UuDEQmWtCbVEEl0DaG86PW6i5qTHI--P9nR8TFloSlI"

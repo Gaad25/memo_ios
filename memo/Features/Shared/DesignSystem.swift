@@ -29,6 +29,10 @@ extension Color {
     static let dsGreen = Color(hex: "#10B981")
     static let dsYellow = Color(hex: "#F59E0B")
     static let dsRed = Color(hex: "#DC2626")
+    
+    // Cores para ícones em seções de configurações
+    static let dsIcon = Color("IconPrimary")
+    static let dsIconDestructive = Color("IconDestructive")
     // -------------------------
     
     // Função auxiliar para criar cores a partir de códigos Hexadecimais

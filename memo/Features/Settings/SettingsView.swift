@@ -5,7 +5,8 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var session: SessionManager
     @State private var showingSignOutAlert = false
-    @State private var showingDeleteAccountAlert = false
+    @State private var showingDeleteDialog = false
+    @State private var showingDeleteSheet = false
 
     @AppStorage(UserDefaultsKeys.notificationsEnabled) private var notificationsEnabled = true
     @AppStorage(UserDefaultsKeys.notificationTime) private var notificationTime: Date = {
@@ -21,16 +22,20 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            // Usando List com estilo .insetGrouped para uma UI moderna
-            List {
+            Form {
                 notificationsSection
                 accountSection
                 supportSection
-                signOutSection // Seção dedicada para Sair
             }
+            .formStyle(.grouped)
+            .formSectionSpacing(32)
             .navigationTitle("Configurações")
-            .sheet(isPresented: $showingDeleteAccountAlert) {
+            .sheet(isPresented: $showingDeleteSheet) {
                 DeleteAccountView().environmentObject(session)
+            }
+            .confirmationDialog("Apagar conta?", isPresented: $showingDeleteDialog, titleVisibility: .visible) {
+                Button("Apagar Conta", role: .destructive) { showingDeleteSheet = true }
+                Button("Cancelar", role: .cancel) { }
             }
             .alert("Deseja realmente sair?", isPresented: $showingSignOutAlert) {
                 Button("Cancelar", role: .cancel) { }
@@ -44,40 +49,59 @@ struct SettingsView: View {
     // MARK: - View Components
     
     private var notificationsSection: some View {
-        Section(header: Text("Notificações")) {
+        Section(header: Text("Notificações").font(.headline).textCase(.none)) {
             Toggle(isOn: $notificationsEnabled) {
                 SettingsRowView(
                     iconName: "bell.badge.fill",
                     title: "Lembretes de Revisão",
-                    iconColor: .purple
+                    iconBackground: .dsIcon
                 )
             }
-            
+            .sensoryFeedback(.impact(weight: .light), trigger: notificationsEnabled)
+
             if notificationsEnabled {
                 DatePicker(
                     "Horário",
                     selection: $notificationTime,
                     displayedComponents: .hourAndMinute
                 )
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .animation(.easeInOut, value: notificationsEnabled)
     }
     
     private var accountSection: some View {
-        Section(header: Text("Conta")) {
-            NavigationLink(destination: ChangePasswordView()) {
+        Section(header: Text("Conta").font(.headline).textCase(.none)) {
+            NavigationLink(destination: ChangePasswordView().transition(.move(edge: .trailing))) {
                 SettingsRowView(
                     iconName: "key.fill",
                     title: "Alterar Senha",
-                    iconColor: .gray
+                    iconBackground: .dsIcon
                 )
             }
-            
-            Button(action: { showingDeleteAccountAlert = true }) {
+            .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
+
+            Button(action: {
+                Haptics.light()
+                showingDeleteDialog = true
+            }) {
                 SettingsRowView(
                     iconName: "trash.fill",
                     title: "Apagar Conta",
-                    iconColor: .red,
+                    iconBackground: .dsIconDestructive,
+                    isDestructive: true
+                )
+            }
+
+            Button(action: {
+                Haptics.light()
+                showingSignOutAlert = true
+            }) {
+                SettingsRowView(
+                    iconName: "rectangle.portrait.and.arrow.right.fill",
+                    title: "Sair da Conta",
+                    iconBackground: .dsIconDestructive,
                     isDestructive: true
                 )
             }
@@ -85,42 +109,31 @@ struct SettingsView: View {
     }
     
     private var supportSection: some View {
-        Section(header: Text("Sobre e Suporte")) {
+        Section(header: Text("Sobre e Suporte").font(.headline).textCase(.none)) {
             Link(destination: URL(string: "mailto:suporte@exemplo.com")!) {
                 SettingsRowView(
                     iconName: "paperplane.fill",
                     title: "Fale Conosco",
-                    iconColor: .blue
+                    iconBackground: .dsIcon
                 )
             }
-            
+            .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
+
             Link(destination: URL(string: "https://apps.apple.com/app/idYOUR_APP_ID")!) {
                 SettingsRowView(
                     iconName: "star.fill",
                     title: "Avaliar na App Store",
-                    iconColor: .yellow
+                    iconBackground: .dsIcon
                 )
             }
-            
+            .simultaneousGesture(TapGesture().onEnded { Haptics.light() })
+
             SettingsRowView(
                 iconName: "info.circle.fill",
                 title: "Versão",
-                iconColor: .secondary,
+                iconBackground: .dsIcon,
                 value: appVersion
             )
-        }
-    }
-    
-    private var signOutSection: some View {
-        Section {
-            Button(action: { showingSignOutAlert = true }) {
-                HStack {
-                    Spacer()
-                    Text("Sair da Conta")
-                        .foregroundColor(.red)
-                    Spacer()
-                }
-            }
         }
     }
 }
@@ -131,30 +144,33 @@ struct SettingsView: View {
 struct SettingsRowView: View {
     let iconName: String
     let title: String
-    let iconColor: Color
+    let iconBackground: Color
     var value: String? = nil
     var isDestructive: Bool = false
 
     var body: some View {
         HStack(spacing: 16) {
             Image(systemName: iconName)
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(width: 32, height: 32)
-                .background(iconColor)
-                .cornerRadius(8)
-            
+                .font(.title3)
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 40)
+                .background(iconBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
             Text(title)
+                .font(.body)
                 .foregroundColor(isDestructive ? .red : .primary)
-            
+
             Spacer()
-            
+
             if let value = value {
                 Text(value)
+                    .font(.body)
                     .foregroundColor(.secondary)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 12)
+        .accessibilityLabel(title)
     }
 }
 

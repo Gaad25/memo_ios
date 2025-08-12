@@ -1,102 +1,140 @@
+// memo/Features/Subjects/SubjectDetailView.swift
+
 import SwiftUI
 
 struct SubjectDetailView: View {
-    // @State para que a view possa atualizar se a matéria mudar
     @State var subject: Subject
     
     @StateObject private var viewModel = SubjectDetailViewModel()
     @State private var isPresentingSessionView = false
     @State private var isEditingSubject = false
     
-    // Callback para notificar a HomeView que precisa recarregar
     var onSubjectUpdated: () -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                
-                Button(action: {
-                    isPresentingSessionView = true
-                }) {
-                    Label("Iniciar Sessão de Estudo", systemImage: "play.circle.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(subject.swiftUIColor) // Use a cor do @State subject
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                }
-                .padding(.top)
+        // ZStack permite sobrepor a lista e o botão flutuante
+        ZStack(alignment: .bottom) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    
+                    // MARK: - Card de Resumo da Matéria
+                    summaryCard
+                        .padding(.top)
 
-                Text("Histórico de Sessões")
-                    .font(.title2.bold())
-                
-                if viewModel.isLoading {
-                    ProgressView()
-                } else if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage).foregroundColor(.red)
-                } else if viewModel.sessions.isEmpty {
-                    Text("Nenhuma sessão registrada.").foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding()
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color(uiColor: .secondarySystemBackground)))
-                } else {
-                    LazyVStack(spacing: 12) {
-                        ForEach(viewModel.sessions) { session in
-                            SessionRowView(session: session)
+                    // MARK: - Cabeçalho do Histórico
+                    Text("Histórico de Sessões")
+                        .font(.title2.bold())
+                    
+                    // MARK: - Histórico de Sessões
+                    if viewModel.isLoading {
+                        ProgressView().frame(maxWidth: .infinity).padding(.top, 50)
+                    } else if viewModel.sessions.isEmpty {
+                        EmptyStateView(
+                            systemImageName: "clock.arrow.circlepath",
+                            message: "Nenhuma sessão de estudo registrada para esta matéria."
+                        )
+                        .padding(.top, 30)
+                    } else {
+                        VStack(spacing: 16) {
+                            ForEach(viewModel.sessions) { session in
+                                SessionRowView(session: session)
+                            }
                         }
                     }
                 }
-                Spacer()
+                .padding()
+                .padding(.bottom, 100) // Espaço extra para não ser coberto pelo botão
             }
-            .padding(.horizontal)
+            
+            // MARK: - Botão Flutuante
+            Button {
+                isPresentingSessionView = true
+            } label: {
+                Label("Iniciar Sessão de Estudo", systemImage: "play.fill")
+                    .font(.headline.weight(.bold))
+                    .padding()
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .tint(subject.swiftUIColor) // Usa a cor da matéria
+            .padding()
+            .background(.thinMaterial) // Efeito de desfoque para se destacar
         }
-        .navigationTitle(subject.name) // O título usará o @State subject
+        .background(Color.dsBackground.ignoresSafeArea())
+        .navigationTitle(subject.name)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Editar") {
-                    isEditingSubject = true
+                Button { isEditingSubject = true } label: {
+                    Image(systemName: "pencil")
                 }
             }
         }
-        .sheet(isPresented: $isPresentingSessionView, onDismiss: {
+        .sheet(isPresented: $isPresentingSessionView) {
             Task { await viewModel.fetchSessions(for: subject.id) }
-        }) {
+        } content: {
             StudySessionView(subject: subject)
         }
         .sheet(isPresented: $isEditingSubject) {
-            // Apresenta AddSubjectView para edição
             AddSubjectView(subjectToEdit: subject, onDone: {
-                // Este onDone será chamado pela AddSubjectView
-                self.isEditingSubject = false // Fecha a sheet
-                self.onSubjectUpdated()      // Chama o callback para HomeView
+                self.isEditingSubject = false
+                self.onSubjectUpdated()
             })
         }
         .onAppear {
             Task { await viewModel.fetchSessions(for: subject.id) }
         }
     }
+    
+    // MARK: - Subviews
+    
+    private var summaryCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                StatItem(value: "\(viewModel.sessions.count)", label: "Sessões")
+                Spacer()
+                StatItem(value: totalStudyTime, label: "Tempo Total")
+                Spacer()
+                StatItem(value: averageScore, label: "Aproveitamento")
+            }
+        }
+        .modifier(CardBackgroundModifier())
+    }
+    
+    // Propriedades computadas para as estatísticas
+    private var totalStudyTime: String {
+        let totalMinutes = viewModel.sessions.reduce(0) { $0 + $1.durationMinutes }
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        return "\(hours)h \(minutes)m"
+    }
+    
+    private var averageScore: String {
+        let sessionsWithQuestions = viewModel.sessions.filter { ($0.questionsAttempted ?? 0) > 0 }
+        guard !sessionsWithQuestions.isEmpty else { return "--" }
+        
+        let totalCorrect = sessionsWithQuestions.reduce(0) { $0 + ($1.questionsCorrect ?? 0) }
+        let totalAttempted = sessionsWithQuestions.reduce(0) { $0 + ($1.questionsAttempted ?? 0) }
+        
+        let percentage = (Double(totalCorrect) / Double(totalAttempted)) * 100
+        return "\(Int(percentage))%"
+    }
 }
 
-struct SubjectDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        // Crie uma instância mock do Subject para a preview
-        let mockSubject = Subject(
-            id: UUID(),
-            name: "Matemática",
-            category: "Exatas",
-            color: "#007AFF", // Use um código hexadecimal para a cor
-            userId: UUID()    // Forneça um UUID mock para o userId
-        )
-        
-        // Envolve em uma NavigationStack para a preview do título
-        NavigationStack {
-            SubjectDetailView(
-                subject: mockSubject,
-                onSubjectUpdated: {
-                    print("Preview: onSubjectUpdated foi chamado!")
-                }
-            )
+
+// Subview para os itens de estatística (pode ser movida para o DesignSystem se quiser reutilizar)
+private struct StatItem: View {
+    let value: String
+    let label: String
+    
+    var body: some View {
+        VStack {
+            Text(value)
+                .font(.title.bold())
+                .foregroundColor(.dsPrimary)
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.dsTextSecondary)
         }
     }
 }

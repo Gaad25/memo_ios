@@ -1,89 +1,100 @@
-//
-//  ReviewRowView.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 20/07/25.
-//
+// memo/Features/Reviews/ReviewRowView.swift
 
 import SwiftUI
 
 struct ReviewRowView: View {
-    // A view agora recebe o ViewModel e o detalhe da revisão
     @ObservedObject var viewModel: ReviewsViewModel
     let detail: ReviewsViewModel.ReviewDetail
-    
-    @State private var isExpanded = false
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // --- CABEÇALHO DO CARD ---
-            HStack(spacing: 16) {
-                Capsule()
-                    .fill(detail.subjectData.swiftUIColor)
-                    .frame(width: 5)
-                
+        VStack(alignment: .leading, spacing: 16) {
+            // Cabeçalho do Card
+            HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(detail.subjectData.name)
-                        .font(.headline)
-                    
-                    Text("Revisão de \(detail.reviewData.reviewInterval)")
+                        .font(.title3.bold())
+                        .foregroundColor(.primary)
+                    Text(detail.subjectData.category)
                         .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Text("Agendada para: \(detail.reviewData.reviewDate.formatted(date: .abbreviated, time: .omitted))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(detail.subjectData.swiftUIColor)
+                        .fontWeight(.semibold)
                 }
-                
                 Spacer()
-                
-                // Botão para expandir/recolher as anotações
-                if let notes = detail.sessionNotes, !notes.isEmpty {
-                    Button(action: {
-                        withAnimation(.spring()) {
-                            isExpanded.toggle()
-                        }
-                    }) {
-                        Image(systemName: "note.text")
-                            .font(.title2)
-                            .foregroundColor(isExpanded ? .blue : .secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
+                Image(systemName: "text.book.closed.fill") // Ícone mais relevante
+                    .font(.title)
+                    .foregroundColor(detail.subjectData.swiftUIColor) // Define a cor primeiro
+                    .opacity(0.8) // E depois a opacidade da View
             }
-            .padding()
 
-            // --- SEÇÃO DE NOTAS (EXPANSÍVEL) ---
-            if isExpanded, let notes = detail.sessionNotes, !notes.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Divider()
-                    Text("Anotações da Sessão Original:")
-                        .font(.caption.bold())
-                        .padding(.horizontal)
-                    Text(notes)
-                        .font(.callout)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal)
-                }
-                .padding(.bottom)
-            }
-            
-            // --- BOTÃO DE AÇÃO ---
             Divider()
+
+            // Informações de Data e Intervalo
+            HStack(spacing: 24) {
+                InfoItem(icon: "calendar", label: "Data", value: detail.reviewData.reviewDate.formatted(.compact(singleDay: true)))
+                InfoItem(icon: "arrow.2.squarepath", label: "Intervalo", value: detail.reviewData.reviewInterval)
+            }
+
+            // Botão de Ação
             Button(action: {
                 viewModel.startCompletionFlow(for: detail)
+                // Feedback háptico leve
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
             }) {
-                HStack {
-                    Spacer()
-                    Image(systemName: "checkmark.circle.fill")
-                    Text("Concluir Revisão")
-                    Spacer()
-                }
+                Label("Concluir Revisão", systemImage: "checkmark")
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
             }
-            .padding()
-            .background(Color.green.opacity(0.1)) // Fundo sutil para o botão
+            .buttonStyle(GradientPrimaryButtonStyle()) // Novo estilo de botão
+            .padding(.top, 8)
         }
-        .background(CardBackground()) // Reutilizando nosso estilo de card
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding()
+        .background(Color.dsSecondaryBackground)
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+    }
+}
+
+// Subview para os itens de informação (Data, Intervalo)
+private struct InfoItem: View {
+    let icon: String
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .font(.callout)
+                .foregroundColor(.dsTextSecondary)
+                .frame(width: 20)
+            VStack(alignment: .leading) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundColor(.dsTextSecondary)
+                Text(value)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+            }
+        }
+    }
+}
+
+extension Date {
+    func formatted(_ format: CompactDateFormat) -> String {
+        let formatter = DateFormatter()
+        let calendar = Calendar.current
+        if calendar.isDateInToday(self) { return "Hoje" }
+        if calendar.isDateInYesterday(self) { return "Ontem" }
+
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "d MMM"
+        return formatter.string(from: self)
+    }
+
+    enum CompactDateFormat {
+        case compact(singleDay: Bool)
     }
 }

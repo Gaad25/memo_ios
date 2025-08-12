@@ -1,56 +1,47 @@
-//
-//  MainTabView.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 26/05/25.
-//
-
-// memo/Features/Home/MainTabView.swift
-
 // memo/Features/Home/MainTabView.swift
 
 import SwiftUI
 
 struct MainTabView: View {
+    @State private var selectedTab: Tab = .home
+
+    // Enum para controlar a aba selecionada e os ícones
+    enum Tab {
+        case home, reviews, ai, statistics, settings
+    }
+
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             HomeView()
                 .tabItem {
-                    Image(systemName: "house.fill")
-                    Text("Início")
+                    Label("Início", systemImage: selectedTab == .home ? "house.fill" : "house")
                 }
+                .tag(Tab.home)
 
-            AllSessionsView()
-                .tabItem {
-                    Image(systemName: "list.bullet")
-                    Text("Sessões")
-                }
-            
-            // NOVA ABA DE REVISÕES
             ReviewsView()
                 .tabItem {
-                    Image(systemName: "calendar.day.timeline.left")
-                    Text("Revisões")
+                    Label("Revisões", systemImage: selectedTab == .reviews ? "calendar.day.timeline.left" : "calendar")
                 }
-
+                .tag(Tab.reviews)
+            
+            AIGeneratorView()
+                .tabItem {
+                    Label("IA", systemImage: selectedTab == .ai ? "sparkles" : "sparkle")
+                }
+                .tag(Tab.ai)
+            
             StatisticsView()
                 .tabItem {
-                    Image(systemName: "chart.bar.xaxis")
-                    Text("Estatísticas")
+                    Label("Estatísticas", systemImage: selectedTab == .statistics ? "chart.bar.xaxis" : "chart.bar")
                 }
+                .tag(Tab.statistics)
 
             SettingsView()
                 .tabItem {
-                    Image(systemName: "gear")
-                    Text("Configurações")
+                    Label("Ajustes", systemImage: selectedTab == .settings ? "gearshape.fill" : "gearshape")
                 }
+                .tag(Tab.settings)
         }
-    }
-}
-
-struct MainTabView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainTabView()
-            .environmentObject(SessionManager())
+        .tint(.dsPrimary) // Define a cor de destaque para o item selecionado
     }
 }

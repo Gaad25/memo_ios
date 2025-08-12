@@ -16,7 +16,7 @@ import Combine
 private extension ClosedRange where Bound == Double {
     /// Clamps a value to be inside the closed range.
     func clamped(_ value: Double) -> Double {
-        min(max(value, lowerBound), upperBound)
+        Swift.min(Swift.max(value, lowerBound), upperBound)
     }
 }
 
@@ -109,7 +109,7 @@ final class StatisticsViewModel: ObservableObject {
             let subjectSessions = validSessions.filter { $0.subjectId == subject.id }
             guard !subjectSessions.isEmpty else { continue }
 
-            let totalMinutes = subjectSessions.reduce(0) { $0 + max(0, $1.durationMinutes) }
+            let totalMinutes = subjectSessions.reduce(0) { $0 + Swift.max(0, $1.durationMinutes) }
             let questionsAttempted = subjectSessions.compactMap { $0.questionsAttempted }.reduce(0, +)
             let questionsCorrect = subjectSessions.compactMap { $0.questionsCorrect }.reduce(0, +)
 

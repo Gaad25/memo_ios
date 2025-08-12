@@ -1,9 +1,4 @@
-//
-//  SessionRowView.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 26/05/25.
-//
+// memo/Features/Sessions/SessionRowView.swift
 
 import SwiftUI
 
@@ -11,31 +6,68 @@ struct SessionRowView: View {
     let session: StudySession
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                // Formata a data para ser mais amigável
-                Text(session.startTime, style: .date)
-                    .fontWeight(.bold)
-                Text("Duração: \(session.durationMinutes) min")
-                    .font(.caption)
+        VStack(alignment: .leading, spacing: 12) {
+            // MARK: - Cabeçalho com Data
+            HStack {
+                Image(systemName: "calendar")
+                    .font(.callout)
                     .foregroundColor(.secondary)
+                
+                Text(session.startTime, style: .date)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                Image(systemName: "timer")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+                
+                Text("\(session.durationMinutes) min")
+                    .font(.headline)
+                    .fontWeight(.semibold)
             }
 
-            Spacer()
+            // MARK: - Anotações (se existirem)
+            if let notes = session.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.body)
+                    .lineLimit(3)
+                    .foregroundColor(.dsTextSecondary)
+            }
             
-            // Mostra o desempenho em questões, se houver
+            // MARK: - Estatísticas de Questões (se existirem)
             if let attempted = session.questionsAttempted, let correct = session.questionsCorrect, attempted > 0 {
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(correct)/\(attempted)")
-                        .fontWeight(.semibold)
-                    Text("Acertos")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                Divider()
+                HStack(spacing: 16) {
+                    Spacer()
+                    StatItem(value: "\(correct)", label: "Acertos")
+                    Divider().frame(height: 30)
+                    StatItem(value: "\(attempted)", label: "Tentativas")
+                    Divider().frame(height: 30)
+                    StatItem(value: "\(Int((Double(correct) / Double(attempted)) * 100))%", label: "Aproveitamento")
+                    Spacer()
                 }
+                .padding(.top, 8)
             }
         }
-        .padding()
-        .background(Color(uiColor: .systemBackground))
-        .cornerRadius(12)
+        .modifier(CardBackgroundModifier()) // <-- Usando o nosso estilo de card!
+    }
+}
+
+// Subview para os itens de estatística
+private struct StatItem: View {
+    let value: String
+    let label: String
+    
+    var body: some View {
+        VStack {
+            Text(value)
+                .font(.title3.bold())
+                .foregroundColor(.dsPrimary)
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.dsTextSecondary)
+        }
     }
 }

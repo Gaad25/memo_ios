@@ -4,165 +4,120 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var session: SessionManager
-
-    @State private var email: String = ""
-    @State private var senha: String = ""
-    @State private var showError: Bool = false
-    @State private var errorMessage: String = ""
-    @State private var isLoading: Bool = false
-    @State private var rememberCredentials: Bool = false
-    @State private var navigateToRegister: Bool = false
     
-    // NOVO ESTADO: Para controlar a apresentação da tela de recuperação
-    @State private var showingForgotPassword = false
+    // MARK: - State
+    @State private var email = ""
+    @State private var password = ""
+    @State private var rememberMe = false
+    @State private var isLoading = false
+    @State private var loginAttempts = 0
+    @State private var authError: AuthError?
+    @State private var isPasswordVisible = false
+
+    @FocusState private var focusedField: Field?
+    private enum Field: Hashable {
+        case email, password
+    }
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(colors: [Color.blue.opacity(0.1), Color(uiColor: .systemBackground)]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-
-                ScrollView {
-                    VStack(spacing: 20) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    
+                    // Header
+                    VStack(spacing: 16) {
                         Image("ic_memo_logo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 250, height: 125)
-                            .padding(.vertical, 40)
-
+                            .resizable().scaledToFit().frame(width: 150)
                         Text("Entrar na sua conta")
-                            .font(.title2.bold())
-                            .padding(.bottom, 20)
+                            .font(.headline).fontWeight(.bold)
+                    }
+                    .padding(.top, 60).padding(.bottom, 24)
 
-                        VStack(spacing: 16) {
-                            TextField("E-mail", text: $email)
-                                .padding(12)
-                                .background(.background)
-                                .cornerRadius(8)
-                                .keyboardType(.emailAddress)
-                                .autocapitalization(.none)
+                    // Form Fields
+                    VStack(spacing: 16) {
+                        IconTextField(iconName: "envelope.fill", placeholder: "E-mail", text: $email, isInvalid: authError != nil, focusedField: $focusedField, field: .email)
+                            .keyboardType(.emailAddress).textContentType(.emailAddress).autocapitalization(.none)
 
-                            SecureField("Senha", text: $senha)
-                                .padding(12)
-                                .background(.background)
-                                .cornerRadius(8)
-                        }
-
-                        // --- INÍCIO DA MUDANÇA ---
                         HStack {
-                            // Adicionamos o Toggle de "Lembrar credenciais" aqui
-                            Toggle(isOn: $rememberCredentials) {
-                                Text("Lembrar")
-                                    .font(.footnote)
+                            IconTextField(iconName: "lock.fill", placeholder: "Senha", text: $password, isSecure: !isPasswordVisible, isInvalid: authError != nil, focusedField: $focusedField, field: .password)
+                                .textContentType(.password)
+
+                            Button {
+                                isPasswordVisible.toggle()
+                            } label: {
+                                Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
+                                    .foregroundColor(.dsTextSecondary)
                             }
-                            .toggleStyle(CheckboxToggleStyle()) // Usando o estilo customizado
-
-                            Spacer()
-
-                            Button("Esqueceu a senha?") {
-                                showingForgotPassword = true
-                            }
-                            .font(.footnote)
-                            .foregroundColor(.blue)
                         }
-                        .padding(.bottom, 10)
-                        // --- FIM DA MUDANÇA ---
+                    }
+                    
+                    if let authError {
+                        Text(authError.description).font(.footnote).foregroundColor(.dsError)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8)
+                    }
+                    
+                    HStack {
+                        Toggle(isOn: $rememberMe) { Text("Lembrar").font(.callout) }
+                            .toggleStyle(CheckboxToggleStyle())
+                        Spacer()
+                        NavigationLink("Esqueceu a senha?") { ForgotPasswordView() }
+                            .font(.callout).tint(.dsPrimary)
+                    }
+                    .padding(.top, 8)
 
-                        if showError {
-                            Text(errorMessage)
-                                .font(.footnote)
-                                .foregroundColor(.red)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-                        }
-
-                        if isLoading {
-                            ProgressView().padding(.vertical, 16)
-                        }
-
-                        Button("Entrar") {
-                            Task { await login() }
+                    // Action Buttons
+                    VStack(spacing: 24) {
+                        Button(action: { Task { await handleLogin() } }) {
+                            if isLoading { ProgressView().tint(.white) }
+                            else { Text("Entrar") }
                         }
                         .buttonStyle(PrimaryButtonStyle())
-                        .padding(.top, 10)
+                        .disabled(isLoading)
+                        .sensoryFeedback(.impact(weight: .light), trigger: isLoading)
+                        .modifier(ShakeEffect(shakes: loginAttempts * 2))
 
-                        Text("OU")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.vertical, 20)
-
-                        Button(action: { /* Lógica de login com Google */ }) {
-                            HStack {
-                                Image("ic_google_logo")
-                                    .resizable()
-                                    .frame(width: 24, height: 24)
-                                Text("Entrar com o Google")
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.background)
-                        .cornerRadius(12)
-                        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
-
-                        Spacer()
-
-                        Button(action: { navigateToRegister = true }) {
-                            Text("Não tem uma conta? **Crie uma agora**")
-                                .font(.subheadline)
-                        }
-                        .padding(.top, 30)
+                        NavigationLink("Não tem uma conta? **Crie uma agora**") { RegisterView() }
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.top, 40)
                 }
+                .padding(.horizontal, 24)
             }
+            .background(Color.dsBackground.ignoresSafeArea())
             .navigationBarHidden(true)
-            .sheet(isPresented: $showingForgotPassword) {
-                ForgotPasswordView().environmentObject(session)
-            }
-            .navigationDestination(isPresented: $navigateToRegister) {
-                RegisterView().environmentObject(session)
-            }
+            .onChange(of: email) { _,_ in authError = nil }
+            .onChange(of: password) { _,_ in authError = nil }
         }
     }
-    // MARK: - Ação login (usa SessionManager)
-    func login() async {
-        let trimmedEmail  = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedPass   = senha.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !trimmedEmail.isEmpty, !trimmedPass.isEmpty else {
-            errorMessage = "Preencha todos os campos."
-            showError    = true
-            return
-        }
-
-        isLoading  = true
-        showError  = false
-
-        // Limpa qualquer erro anterior do SessionManager
-        session.errorMessage = nil
+    
+    private func handleLogin() async {
+        focusedField = nil
+        isLoading = true
+        authError = nil
         
-        await session.signIn(email: trimmedEmail, password: trimmedPass)
-
-        if let err = session.errorMessage {
-            errorMessage = "Falha ao entrar: \(err)"
-            showError    = true
+        await session.signIn(email: email, password: password)
+        
+        if let errorMessage = session.errorMessage {
+            self.authError = .custom(message: errorMessage)
+            withAnimation(.default) {
+                loginAttempts += 1
+            }
         } else {
-            // SUCESSO: Verifica se deve salvar as credenciais
-            if rememberCredentials {
-                session.saveCredentials(email: trimmedEmail, password: trimmedPass)
+            if rememberMe {
+                session.saveCredentials(email: email, password: password)
             } else {
-                // Se não for para lembrar, garante que credenciais antigas sejam limpas
                 session.clearCredentials()
             }
         }
-
         isLoading = false
+    }
+    
+    private enum AuthError: Error, CustomStringConvertible {
+        case custom(message: String)
+        var description: String {
+            switch self {
+            case .custom(let message):
+                return "Falha ao entrar: \(message)"
+            }
+        }
     }
 }

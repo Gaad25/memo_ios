@@ -8,32 +8,29 @@ struct CustomReviewConfirmationDialogView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Text("Avalie sua Revisão")
+            Text("Avalie a sua Revisão")
                 .font(.title2.bold())
-                .foregroundColor(Color.primary)
+                .foregroundColor(.primary)
                 .multilineTextAlignment(.center)
 
-            Text("Como você se sentiu ao revisar \"\(subjectName)\"?")
+            Text("Como se sentiu ao rever \"\(subjectName)\"?")
                 .font(.subheadline)
                 .foregroundColor(Color.secondary)
                 .multilineTextAlignment(.center)
 
             VStack(spacing: 16) {
-                // 👇 O ÍCONE FOI REMOVIDO DO BOTÃO
                 Button("Fácil") {
                     viewModel.completeReview(with: .facil)
                     viewModel.showingCustomDifficultySelector = false
                 }
                 .buttonStyle(CustomDifficultyButtonStyle(backgroundColor: .green.opacity(0.15), textColor: .green))
 
-                // 👇 O ÍCONE FOI REMOVIDO DO BOTÃO
                 Button("Médio") {
                     viewModel.completeReview(with: .medio)
                     viewModel.showingCustomDifficultySelector = false
                 }
                 .buttonStyle(CustomDifficultyButtonStyle(backgroundColor: .orange.opacity(0.15), textColor: .orange))
 
-                // 👇 O ÍCONE FOI REMOVIDO DO BOTÃO
                 Button("Difícil") {
                     viewModel.completeReview(with: .dificil)
                     viewModel.showingCustomDifficultySelector = false
@@ -53,14 +50,13 @@ struct CustomReviewConfirmationDialogView: View {
             .buttonStyle(.borderless)
         }
         .padding(32)
-        .background(CardBackground())
-        .cornerRadius(20)
-        .shadow(color: .black.opacity(0.1), radius: 20)
+        .modifier(CardBackgroundModifier())
         .padding(.horizontal, 24)
     }
 }
 
-// O ButtonStyle agora não precisa mais de um HStack
+// --- CORREÇÃO AQUI ---
+// Adicionamos a struct do estilo de botão que estava em falta.
 struct CustomDifficultyButtonStyle: ButtonStyle {
     let backgroundColor: Color
     let textColor: Color
@@ -77,40 +73,24 @@ struct CustomDifficultyButtonStyle: ButtonStyle {
             .animation(.easeOut(duration: 0.2), value: configuration.isPressed)
     }
 }
+// --------------------
 
+// Adicionamos novamente a PreviewProvider para que o arquivo fique completo e funcional.
 struct CustomReviewConfirmationDialogView_Previews: PreviewProvider {
     static let mockViewModel: ReviewsViewModel = {
         let vm = ReviewsViewModel()
         
-        let mockSubject = Subject(
-            id: UUID(),
-            name: "História",
-            category: "Humanas",
-            color: "#A020F0",
-            userId: UUID()
-        )
+        // Dados mock para a preview
+        let mockSubject = Subject(id: UUID(), name: "História", category: "Humanas", color: "#A020F0", userId: UUID())
+        let mockReview = Review(id: UUID(), userId: UUID(), sessionId: UUID(), subjectId: mockSubject.id, reviewDate: Date(), status: "pending", reviewInterval: "3d")
         
-        let mockReview = Review(
-            id: UUID(),
-            userId: UUID(),
-            sessionId: UUID(),
-            subjectId: mockSubject.id,
-            reviewDate: Date(),
-            status: "pending",
-            reviewInterval: "3d"
-        )
-        
-        vm.reviewToComplete = ReviewsViewModel.ReviewDetail(
-            reviewData: mockReview,
-            subjectData: mockSubject,
-            sessionNotes: "Revisar a Era Vargas."
-        )
+        vm.reviewToComplete = ReviewsViewModel.ReviewDetail(reviewData: mockReview, subjectData: mockSubject, sessionNotes: "Revisar a Era Vargas.")
         return vm
     }()
 
     static var previews: some View {
         ZStack {
-            Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
+            Color.dsBackground.ignoresSafeArea()
             CustomReviewConfirmationDialogView(viewModel: mockViewModel, subjectName: "História")
         }
     }

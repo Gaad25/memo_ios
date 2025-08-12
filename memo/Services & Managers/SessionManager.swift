@@ -9,108 +9,70 @@
 import SwiftUI
 import Supabase
 
+/// `SessionManager` coordinates user authentication state.
+/// The Supabase client and credential persistence are injected to make
+/// the manager easier to test and to reduce global dependencies.
 @MainActor
 final class SessionManager: ObservableObject {
     @Published var isLoggedIn = false
     @Published var isLoading  = false
     @Published var errorMessage: String?
-    
-    // Chaves para salvar as credenciais no UserDefaults
-    private let emailKey = "memoAppUserEmail"
-    private let passwordKey = "memoAppUserPassword"
-    
+
+    private let client: SupabaseClient
+    private let credentialsStore: CredentialsStore
+
+    init(
+        client: SupabaseClient = SupabaseManager.shared.client,
+        credentialsStore: CredentialsStore = CredentialsStore()
+    ) {
+        self.client = client
+        self.credentialsStore = credentialsStore
+    }
+
     // Tenta fazer login automático ao iniciar o app
     func attemptAutoLogin() async {
-        guard let (email, password) = loadCredentials() else {
-            return
-        }
-        
+        guard let credentials = credentialsStore.load() else { return }
+
         isLoading = true
-        await signIn(email: email, password: password, isAutoLogin: true)
+        await signIn(email: credentials.email, password: credentials.password, isAutoLogin: true)
         isLoading = false
     }
-    
+
     // Login
     // Adicionamos um parâmetro para diferenciar o login manual do automático
     func signIn(email: String, password: String, isAutoLogin: Bool = false) async {
-        if !isAutoLogin {
-            isLoading = true
-        }
-        defer {
-            if !isAutoLogin {
-                isLoading = false
-            }
-        }
-        
+        if !isAutoLogin { isLoading = true }
+        defer { if !isAutoLogin { isLoading = false } }
+
         do {
-            try await SupabaseManager.shared.client.auth.signIn(email: email,
-                                                                password: password)
+            try await client.auth.signIn(email: email, password: password)
             withAnimation { isLoggedIn = true }
         } catch {
             errorMessage = error.localizedDescription
             // Se o login automático falhar, limpa as credenciais inválidas.
-            if isAutoLogin {
-                clearCredentials()
-            }
+            if isAutoLogin { credentialsStore.clear() }
         }
     }
-    
+
     // Logout
     func signOut() async {
-        try? await SupabaseManager.shared.client.auth.signOut()
-        clearCredentials() // Limpa as credenciais ao sair
+        try? await client.auth.signOut()
+        credentialsStore.clear() // Limpa as credenciais ao sair
         withAnimation { isLoggedIn = false }
     }
-    
+
     // MARK: - Gerenciamento de Credenciais
-    
+
     // Salva as credenciais de forma segura.
     // NOTA: O e-mail (que não é um segredo) ainda é salvo no UserDefaults para
     // sabermos qual conta procurar no Keychain ao reabrir o app. A senha
     // é salva de forma segura no Keychain.
     func saveCredentials(email: String, password: String) {
-        UserDefaults.standard.set(email, forKey: emailKey)
-        do {
-            try KeychainHelper.save(password: password, forEmail: email)
-        } catch {
-            // Em um app real, seria bom logar este erro.
-            print("❌ Erro ao salvar senha no Keychain: \(error)")
-        }
+        credentialsStore.save(email: email, password: password)
     }
-    
-    // Carrega as credenciais.
-    private func loadCredentials() -> (email: String, password: String)? {
-        // Carrega o e-mail do UserDefaults.
-        guard let email = UserDefaults.standard.string(forKey: emailKey) else {
-            return nil
-        }
-        
-        do {
-            // Usa o e-mail para buscar a senha no Keychain.
-            if let password = try KeychainHelper.load(forEmail: email) {
-                return (email, password)
-            }
-        } catch {
-            print("❌ Erro ao carregar senha do Keychain: \(error)")
-        }
-        
-        return nil
-    }
-    
+
     // Limpa as credenciais salvas.
     func clearCredentials() {
-        // Primeiro, tentamos pegar o e-mail salvo para saber qual entrada apagar do Keychain.
-        if let email = UserDefaults.standard.string(forKey: emailKey) {
-            do {
-                try KeychainHelper.delete(forEmail: email)
-            } catch {
-                print("❌ Erro ao apagar senha do Keychain: \(error)")
-            }
-        }
-        
-        // Por fim, removemos o e-mail do UserDefaults.
-        UserDefaults.standard.removeObject(forKey: emailKey)
-        // A chave da senha não é mais usada, mas é bom remover caso ainda exista em instalações antigas.
-        UserDefaults.standard.removeObject(forKey: passwordKey)
+        credentialsStore.clear()
     }
 }

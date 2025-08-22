@@ -28,6 +28,8 @@ final class HomeViewModel: ObservableObject {
     @Published var goals: [StudyGoalViewData] = []
     @Published var userPoints: Int = 0
     @Published var userStreak: Int = 0
+    @Published var lastStudiedSubject: Subject?
+    @Published var todaysReviews: [ReviewsViewModel.ReviewDetail] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     
@@ -64,28 +66,74 @@ final class HomeViewModel: ObservableObject {
 
             async let goalsTask: [Goal] = try SupabaseManager.shared.client
                 .from("goals").select().eq("user_id", value: userId).eq("completed", value: false).execute().value
+            
+            // Carrega detalhes de revisões pendentes (com subject)
+            async let reviewDetailsTask: [ReviewsViewModel.ReviewDetail] = try SupabaseManager.shared.client
+                .rpc("get_pending_reviews_with_details")
+                .execute()
+                .value
 
-            let (profile, subjects, sessions, goals) = try await (profileTask, subjectsTask, sessionsTask, goalsTask)
+            let (profile, subjects, sessions, goals, reviewDetails) = try await (profileTask, subjectsTask, sessionsTask, goalsTask, reviewDetailsTask)
             if let profile = profile {
                 self.userPoints = profile.points
-                self.userStreak = profile.currentStreak
+                self.userStreak = Self.computeDisplayStreak(
+                    lastStudyDate: profile.lastStudyDate,
+                    storedStreak: profile.currentStreak
+                )
             }
 
             self.subjects = subjects
             processDashboardSummary(from: sessions)
             processGoals(goals: goals, sessions: sessions, subjects: subjects)
 
+            // Continuar de Onde Parou: carrega último subject se existir
+            if let idString = UserDefaults.standard.string(forKey: UserDefaultsKeys.lastStudiedSubjectID),
+               let uuid = UUID(uuidString: idString) {
+                self.lastStudiedSubject = subjects.first(where: { $0.id == uuid })
+            } else {
+                self.lastStudiedSubject = nil
+            }
+
+            // Revisões de Hoje
+            self.todaysReviews = reviewDetails.filter { Calendar.current.isDateInToday($0.reviewData.reviewDate) }
+
         } catch {
             self.errorMessage = "Falha ao carregar dados."
+            #if DEBUG
             print("❌ ERRO em refreshAllDashboardData: \(error)")
+            #endif
+
         }
 
         self.isLoading = false
     }
 
+    // MARK: - Streak Logic (Display Only)
+    /// Computes the streak to display without mutating the database.
+    /// Rules:
+    ///  - If no last study date -> 0
+    ///  - If last study was today -> keep stored streak
+    ///  - If last study was yesterday -> keep stored streak
+    ///  - If there was a gap of one or more full days -> 0
+    private static func computeDisplayStreak(lastStudyDate: Date?, storedStreak: Int) -> Int {
+        guard let last = lastStudyDate else { return 0 }
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: Date())
+        let lastStart = calendar.startOfDay(for: last)
+        let diffDays = calendar.dateComponents([.day], from: lastStart, to: todayStart).day ?? 0
+
+        if diffDays <= 1 { // today (0) or yesterday (1)
+            return max(0, storedStreak)
+        } else {
+            return 0
+        }
+    }
+
     func userDidCompleteAction() async {
+        #if DEBUG
         print("--- 🏁 Iniciando userDidCompleteAction ---")
-        
+        #endif
+
         do {
             let userId = try await SupabaseManager.shared.client.auth.session.user.id
             
@@ -98,7 +146,10 @@ final class HomeViewModel: ObservableObject {
             
             // 3. Calcula os novos valores
             let newPoints = profile.points + 10
+            let newWeeklyPoints = profile.weeklyPoints + 10
             var newStreak = profile.currentStreak
+            var newMaxStreak = profile.maxStreak
+            
             if let lastStudyDate = profile.lastStudyDate {
                 if Calendar.current.isDateInYesterday(lastStudyDate) {
                     newStreak += 1
@@ -109,17 +160,26 @@ final class HomeViewModel: ObservableObject {
                 newStreak = 1
             }
             
+            // Atualizar maxStreak se necessário
+            if newStreak > newMaxStreak {
+                newMaxStreak = newStreak
+            }
+            
             // --- INÍCIO DA CORREÇÃO FINAL (Análise do seu amigo) ---
             // 4. Cria a struct para a atualização
             struct ProfileUpdate: Encodable {
                 let points: Int
+                let weekly_points: Int
                 let current_streak: Int
+                let max_streak: Int
                 let last_study_date: Date
             }
             
             let updates = ProfileUpdate(
                 points: newPoints,
+                weekly_points: newWeeklyPoints,
                 current_streak: newStreak,
+                max_streak: newMaxStreak,
                 last_study_date: Date()
             )
             
@@ -130,17 +190,22 @@ final class HomeViewModel: ObservableObject {
                 .update(updates)
                 .eq("id", value: userId)
                 .execute() // Apenas executa, sem .select() ou .single()
-            
+            #if DEBUG
             print("✅ Operação de UPDATE enviada ao Supabase.")
-            // --- FIM DA CORREÇÃO FINAL ---
-                
+            #endif
+
             // 6. Recarrega todos os dados do dashboard para a UI refletir as mudanças
+            #if DEBUG
             print("6. Recarregando todos os dados do dashboard...")
+            #endif
+
             await refreshAllDashboardData()
             print("--- ✅ Processo userDidCompleteAction concluído! ---")
 
         } catch {
+            #if DEBUG
             print("❌ ERRO CRÍTICO em userDidCompleteAction: \(error)")
+            #endif
             await MainActor.run {
                 self.errorMessage = "Não foi possível salvar o seu progresso."
                 self.isLoading = false
@@ -183,17 +248,27 @@ final class HomeViewModel: ObservableObject {
 
             profile.lastStudyDate = today
             profile.points += 10
+            profile.weeklyPoints += 10
+            
+            // Atualizar maxStreak se necessário
+            if profile.currentStreak > profile.maxStreak {
+                profile.maxStreak = profile.currentStreak
+            }
 
             struct ProfileUpdate: Encodable {
                 let points: Int
                 let current_streak: Int
                 let last_study_date: Date
+                let weekly_points: Int
+                let max_streak: Int
             }
 
             let updates = ProfileUpdate(
                 points: profile.points,
                 current_streak: profile.currentStreak,
-                last_study_date: today
+                last_study_date: today,
+                weekly_points: profile.weeklyPoints,
+                max_streak: profile.maxStreak
             )
 
             try await SupabaseManager.shared.client
@@ -203,10 +278,49 @@ final class HomeViewModel: ObservableObject {
                 .execute()
 
             self.userPoints = profile.points
-            self.userStreak = profile.currentStreak
+            self.userStreak = Self.computeDisplayStreak(
+                lastStudyDate: profile.lastStudyDate,
+                storedStreak: profile.currentStreak
+            )
 
         } catch {
+            #if DEBUG
             print("❌ Error updating gamification: \(error.localizedDescription)")
+            #endif
+        }
+    }
+    
+    /// Verifica e atualiza o record de pontos semanais se necessário
+    func checkAndUpdateWeeklyPointsRecord() async {
+        do {
+            let userId = try await SupabaseManager.shared.client.auth.session.user.id
+            
+            let profile: UserProfile = try await SupabaseManager.shared.client
+                .from("user_profiles")
+                .select()
+                .eq("id", value: userId)
+                .single()
+                .execute()
+                .value
+            
+            // Se os pontos semanais atuais superaram o record
+            if profile.weeklyPoints > profile.maxWeeklyPoints {
+                struct MaxWeeklyPointsUpdate: Encodable {
+                    let max_weekly_points: Int
+                }
+                
+                let update = MaxWeeklyPointsUpdate(max_weekly_points: profile.weeklyPoints)
+                
+                try await SupabaseManager.shared.client
+                    .from("user_profiles")
+                    .update(update)
+                    .eq("id", value: userId)
+                    .execute()
+            }
+        } catch {
+            #if DEBUG
+            print("❌ Error checking weekly points record: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -243,7 +357,9 @@ final class HomeViewModel: ObservableObject {
                         .eq("id", value: subjectToDelete.id) // Usamos o ID do objeto
                         .execute()
                 } catch {
+                    #if debug
                     print("❌ Erro ao apagar matéria: \(error.localizedDescription)")
+                    #endif
                     // Se der erro, recarrega tudo para garantir consistência
                     await refreshAllDashboardData()
                 }
@@ -262,7 +378,9 @@ final class HomeViewModel: ObservableObject {
                         .eq("id", value: goalToDelete.id) // Usamos o ID do objeto
                         .execute()
                 } catch {
+                    #if debug
                     print("❌ Erro ao apagar meta: \(error.localizedDescription)")
+                    #endif
                     await refreshAllDashboardData()
                 }
             }

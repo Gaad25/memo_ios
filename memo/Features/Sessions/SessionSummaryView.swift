@@ -14,6 +14,8 @@ struct SessionSummaryView: View {
     @State private var notes: String = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var showToast = false
+    @State private var notesShake = 0
     
     // Struct para decodificar o retorno do Supabase
     private struct ReturnedSession: Codable {
@@ -57,6 +59,7 @@ struct SessionSummaryView: View {
                         }
                         TextEditor(text: $notes)
                             .frame(minHeight: 150)
+                            .accessibilityLabel("Anotações da sessão")
                     }
                 }
                 
@@ -70,19 +73,24 @@ struct SessionSummaryView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Descartar") { dismiss() }
+                    Button("Descartar") { Haptics.light(); dismiss() }
+                        .accessibilityLabel("Descartar")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if isLoading {
                         ProgressView()
                     } else {
                         Button("Salvar") {
+                            Haptics.light()
                             Task { await saveSession() }
                         }
                         .disabled(isLoading)
+                        .accessibilityLabel("Salvar")
                     }
                 }
             }
+            .toast($showToast, message: "Sessão salva!")
+            .scrollDismissesKeyboard(.interactively)
         }
     }
     
@@ -122,13 +130,19 @@ struct SessionSummaryView: View {
 
             await scheduleReviews(for: returnedSession)
             
+            // Salva a última matéria estudada para "Continuar de Onde Parou"
+            UserDefaults.standard.set(subject.id.uuidString, forKey: UserDefaultsKeys.lastStudiedSubjectID)
+
             await HomeViewModel.shared.userDidCompleteAction()
-            
-            dismiss()
+
+            Haptics.success()
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { showToast = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { dismiss() }
             
         } catch {
             errorMessage = "Erro ao salvar: \(error.localizedDescription)"
             isLoading = false
+            Haptics.error()
         }
     }
     
@@ -154,16 +168,22 @@ struct SessionSummaryView: View {
         do {
             try await SupabaseManager.shared.client.from("reviews").insert(firstReview).execute()
             scheduleLocalNotification(subjectName: subject.name, reviewDate: firstReviewDate, intervalText: "1 dia")
+            #if DEBUG
             print("✅ Primeira revisão agendada para \(firstReviewDate.formatted()).")
+            #endif
         } catch {
+            #if DEBUG
             print("❌ Erro ao agendar a primeira revisão no Supabase: \(error.localizedDescription)")
+            #endif
         }
     }
 
     private func scheduleLocalNotification(subjectName: String, reviewDate: Date, intervalText: String) {
         let notificationsEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.notificationsEnabled)
         guard notificationsEnabled else {
+            #if DEBUG
             print("🔔 Notificações desabilitadas pelo usuário.")
+            #endif
             return
         }
 
@@ -188,10 +208,14 @@ struct SessionSummaryView: View {
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
+                #if DEBUG
                 print("Erro ao agendar notificação local: \(error.localizedDescription)")
+                #endif
             } else {
                 let scheduledDate = Calendar.current.date(from: triggerDateComponents)
+                #if DEBUG
                 print("Notificação para '\(subjectName)' agendada para \(scheduledDate?.formatted() ?? "data inválida").")
+                #endif
             }
         }
     }

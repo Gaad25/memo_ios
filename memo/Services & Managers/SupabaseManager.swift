@@ -1,8 +1,3 @@
-//
-//  SupabaseManager.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 16/04/25.
 import Foundation
 import Supabase
 // Não é necessário importar o ConfidentialKit aqui

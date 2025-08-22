@@ -1,10 +1,3 @@
-//
-//  StudySession.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 26/05/25.
-//
-
 import Foundation
 
 struct StudySession: Codable, Identifiable {

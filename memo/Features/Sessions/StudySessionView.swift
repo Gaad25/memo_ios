@@ -2,6 +2,7 @@
 
 import SwiftUI
 import Combine
+import ActivityKit
 
 struct StudySessionView: View {
     @Environment(\.dismiss) var dismiss
@@ -12,6 +13,12 @@ struct StudySessionView: View {
     @State private var timer: AnyCancellable?
     @State private var isRunning = true
     @State private var isPresentingSummary = false
+    @State private var sessionStartDate = Date()
+    @State private var pauseDate: Date?
+    @State private var totalPausedTime: TimeInterval = 0
+    
+    // Live Activity
+    @State private var currentActivity: Activity<StudyTimerAttributes>?
     
     // State para mensagens motivacionais
     private let motivationalMessages = [
@@ -156,31 +163,113 @@ struct StudySessionView: View {
     // MARK: - Funções
     private func adjustTime(by amount: TimeInterval) {
         let newTime = elapsedTime + amount
-        if newTime >= 0 { elapsedTime = newTime }
+        if newTime >= 0 { 
+            elapsedTime = newTime 
+        }
     }
 
     private func startTimers() {
+        sessionStartDate = Date()
+        elapsedTime = 0
+        totalPausedTime = 0
         isRunning = true
+        pauseDate = nil
+        
         timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-            .sink { _ in if isRunning { elapsedTime += 1 } }
+            .sink { _ in 
+                if isRunning { 
+                    elapsedTime += 1
+                    updateLiveActivity()
+                }
+            }
         
         messageTimer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
             .sink { _ in
                 let nextIndex = (currentMessageIndex + 1) % motivationalMessages.count
                 withAnimation { currentMessageIndex = nextIndex }
             }
+        
+        startLiveActivity()
     }
     
     private func stopTimers() {
-        timer?.cancel(); messageTimer?.cancel()
-        timer = nil; messageTimer = nil
+        timer?.cancel()
+        messageTimer?.cancel()
+        timer = nil
+        messageTimer = nil
+        endLiveActivity()
     }
     
-    private func toggleTimer() { isRunning.toggle() }
+    private func toggleTimer() {
+        isRunning.toggle()
+        pauseDate = isRunning ? nil : Date()
+        updateLiveActivity()
+    }
     
     private func finishSession() {
         isRunning = false
         stopTimers()
         isPresentingSummary = true
     }
+    
+    // MARK: - Live Activity Functions
+    private func startLiveActivity() {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        
+        let attributes = StudyTimerAttributes(subjectName: subject.name)
+        
+        // Para o Text(timerInterval:) funcionar, precisamos de um range que represente o tempo decorrido
+        let now = Date()
+        let initialState = StudyTimerAttributes.ContentState(
+            timerRange: now...now.addingTimeInterval(1), // Range mínimo para começar
+            isRunning: true,
+            pauseDate: nil
+        )
+        
+        do {
+            currentActivity = try Activity<StudyTimerAttributes>.request(
+                attributes: attributes,
+                content: .init(state: initialState, staleDate: nil)
+            )
+        } catch {
+            print("Failed to start Live Activity: \(error)")
+        }
+    }
+    
+    private func updateLiveActivity() {
+        guard let activity = currentActivity else { return }
+        
+        // Calcular o range baseado no tempo decorrido atual
+        let now = Date()
+        let startTime = now.addingTimeInterval(-elapsedTime)
+        let endTime = now.addingTimeInterval(1) // Pequeno buffer para o futuro
+        
+        let updatedState = StudyTimerAttributes.ContentState(
+            timerRange: startTime...endTime,
+            isRunning: isRunning,
+            pauseDate: pauseDate
+        )
+        
+        Task {
+            await activity.update(.init(state: updatedState, staleDate: nil))
+        }
+    }
+    
+    private func endLiveActivity() {
+        guard let activity = currentActivity else { return }
+        
+        let now = Date()
+        let timerStart = now.addingTimeInterval(-elapsedTime)
+        let finalState = StudyTimerAttributes.ContentState(
+            timerRange: timerStart...now,
+            isRunning: false,
+            pauseDate: now
+        )
+        
+        Task {
+            await activity.end(.init(state: finalState, staleDate: nil), dismissalPolicy: .immediate)
+        }
+        currentActivity = nil
+    }
+
 }

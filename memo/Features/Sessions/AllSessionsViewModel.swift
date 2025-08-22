@@ -62,7 +62,9 @@ final class AllSessionsViewModel: ObservableObject {
             sortSessions()
         } catch {
             self.errorMessage = "Não foi possível atualizar as sessões."
+            #if debug
             print("❌ Erro em refreshSessions (AllSessionsViewModel): \(error.localizedDescription)")
+            #endif
         }
         isLoading = false
     }
@@ -121,7 +123,9 @@ final class AllSessionsViewModel: ObservableObject {
                         .eq("id", value: session.id)
                         .execute()
                 } catch {
+                    #if debug
                     print("Erro ao deletar sessão: \(error.localizedDescription)")
+                    #endif
                     await refreshSessions()
                 }
             }

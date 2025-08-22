@@ -1,10 +1,3 @@
-//
-//  AllSessionsView.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 13/07/25.
-//
-
 import SwiftUI
 
 struct AllSessionsView: View {

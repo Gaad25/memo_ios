@@ -1,12 +1,15 @@
 // memo/Features/Settings/SettingsView.swift
 
 import SwiftUI
+import UserNotifications
+import UIKit
 
 struct SettingsView: View {
     @EnvironmentObject private var session: SessionManager
     @State private var showingSignOutAlert = false
     @State private var showingDeleteDialog = false
     @State private var showingDeleteSheet = false
+    @State private var showNotificationsRationale = false
 
     @AppStorage(UserDefaultsKeys.notificationsEnabled) private var notificationsEnabled = true
     @AppStorage(UserDefaultsKeys.notificationTime) private var notificationTime: Date = {
@@ -28,12 +31,26 @@ struct SettingsView: View {
                 supportSection
             }
             .formStyle(.grouped)
-            .formSectionSpacing(32)
+            .listSectionSpacing(32)
             .navigationTitle("Configurações")
             .sheet(isPresented: $showingDeleteSheet) {
                 DeleteAccountView().environmentObject(session)
             }
-            .confirmationDialog("Apagar conta?", isPresented: $showingDeleteDialog, titleVisibility: .visible) {
+            .alert("Ativar lembretes?", isPresented: $showNotificationsRationale) {
+                Button("Agora não", role: .cancel) {
+                    notificationsEnabled = false
+                }
+                Button("Permitir") {
+                    Task { await requestNotificationPermissionIfNeeded() }
+                }
+            } message: {
+                Text("Vamos lembrar você no horário escolhido para revisar seus estudos.")
+            }
+            .confirmationDialog(
+                            "Apagar conta?",
+                            isPresented: $showingDeleteDialog,
+                            titleVisibility: Visibility.visible
+                        ) {
                 Button("Apagar Conta", role: .destructive) { showingDeleteSheet = true }
                 Button("Cancelar", role: .cancel) { }
             }
@@ -58,6 +75,10 @@ struct SettingsView: View {
                 )
             }
             .sensoryFeedback(.impact(weight: .light), trigger: notificationsEnabled)
+            .onChange(of: notificationsEnabled) { _, isOn in
+                guard isOn else { return }
+                showNotificationsRationale = true
+            }
 
             if notificationsEnabled {
                 DatePicker(
@@ -66,6 +87,8 @@ struct SettingsView: View {
                     displayedComponents: .hourAndMinute
                 )
                 .transition(.opacity.combined(with: .move(edge: .top)))
+                .accessibilityLabel("Horário das notificações")
+                .accessibilityHint("Selecione o horário diário para os lembretes de revisão")
             }
         }
         .animation(.easeInOut, value: notificationsEnabled)
@@ -134,6 +157,39 @@ struct SettingsView: View {
                 iconBackground: .dsIcon,
                 value: appVersion
             )
+        }
+    }
+}
+
+// MARK: - Notifications
+private extension SettingsView {
+    func requestNotificationPermissionIfNeeded() async {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        switch settings.authorizationStatus {
+        case .notDetermined:
+            do {
+                let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+                if !granted {
+                    await MainActor.run { notificationsEnabled = false }
+                }
+            } catch {
+                await MainActor.run { notificationsEnabled = false }
+            }
+        case .denied:
+            // Sugerir abrir ajustes
+            await MainActor.run {
+                notificationsEnabled = false
+            }
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                await MainActor.run {
+                    UIApplication.shared.open(url)
+                }
+            }
+        case .authorized, .provisional, .ephemeral:
+            break
+        @unknown default:
+            break
         }
     }
 }

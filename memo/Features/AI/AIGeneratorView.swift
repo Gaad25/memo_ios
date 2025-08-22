@@ -33,9 +33,9 @@ struct ZoeGeneratorView: View {
     // frases simpáticas da Zoe
     private var greeting: String {
         if vm.subject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Au au! Vamos criar um desafio hoje?"
+            return "Olá! Sou a Zoe. Sobre qual matéria vamos criar um quiz hoje?"
         } else {
-            return "Pronto para treinar \(vm.subject)?"
+            return "Perfeito! Vamos treinar \(vm.subject)?"
         }
     }
 
@@ -117,17 +117,27 @@ struct ZoeGeneratorView: View {
                     } label: {
                         HStack(spacing: 10) {
                             if vm.loading {
-                                ProgressView().tint(.white)
+                                ProgressView(value: vm.fakeProgress)
+                                    .tint(.white)
+                                    .frame(width: 56)
+                                    .animation(.linear, value: vm.fakeProgress)
                             } else {
                                 Image(systemName: "wand.and.stars")
                             }
-                            Text(vm.loading ? "Gerando com Zoe..." : "Gerar com Zoe")
+                            Text(vm.loading ? "A Zoe está a preparar suas perguntas... \(Int(vm.fakeProgress * 100))%" : "Criar Quiz com a Zoe")
                                 .fontWeight(.semibold)
                         }
                     }
                     .buttonStyle(GradientPrimaryButtonStyle())
                     .disabled(vm.subject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || vm.loading)
                     .sensoryFeedback(.impact(weight: .light), trigger: vm.loading)
+                    .contextMenu {
+                        if vm.loading {
+                            Button(role: .destructive) { vm.cancelStreaming() } label: {
+                                Label("Cancelar", systemImage: "xmark.circle")
+                            }
+                        }
+                    }
                     .padding(.horizontal, 16)
                     .padding(.top, 4)
                 }
@@ -139,7 +149,7 @@ struct ZoeGeneratorView: View {
                            startPoint: .top, endPoint: .bottom)
             .ignoresSafeArea()
         )
-        .navigationTitle("Gerador IA")
+        .navigationTitle("Quiz com a Zoe")
         .navigationBarTitleDisplayMode(.inline)
         .scrollIndicators(.hidden)
     }

@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CE48AB2B2E53BDDC001BC6EF /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE48AB2A2E53BDDC001BC6EF /* WidgetKit.framework */; };
+		CE48AB2D2E53BDDC001BC6EF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE48AB2C2E53BDDC001BC6EF /* SwiftUI.framework */; };
+		CE48AB3C2E53BDDE001BC6EF /* MemoTimerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CE48AB292E53BDDC001BC6EF /* MemoTimerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CE4E9BA72E54185800E1C53C /* StudyTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4E9BA62E54185800E1C53C /* StudyTimerAttributes.swift */; };
+		CE4E9BA82E54185800E1C53C /* StudyTimerAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4E9BA62E54185800E1C53C /* StudyTimerAttributes.swift */; };
+		CE4E9BAB2E54186600E1C53C /* TimerIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4E9BAA2E54186600E1C53C /* TimerIntents.swift */; };
+		CE4E9BAC2E54186600E1C53C /* TimerIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4E9BAA2E54186600E1C53C /* TimerIntents.swift */; };
 		CE5550932E45311D0087FD7A /* ConfidentialKit in Frameworks */ = {isa = PBXBuildFile; productRef = CE5550922E45311D0087FD7A /* ConfidentialKit */; };
 		CEA61F4B2DAFDDE700125A26 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = CEA61F4A2DAFDDE700125A26 /* Auth */; };
 		CEA61F4D2DAFDDE700125A26 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = CEA61F4C2DAFDDE700125A26 /* Functions */; };
@@ -17,6 +24,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		CE48AB3A2E53BDDE001BC6EF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CEDD5D982D9CD66900550802 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CE48AB282E53BDDC001BC6EF;
+			remoteInfo = MemoTimerWidgetExtension;
+		};
 		CEDD5DB12D9CD66A00550802 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CEDD5D982D9CD66900550802 /* Project object */;
@@ -33,15 +47,62 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		CE48AB412E53BDDE001BC6EF /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				CE48AB3C2E53BDDE001BC6EF /* MemoTimerWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		CE48AB292E53BDDC001BC6EF /* MemoTimerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MemoTimerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE48AB2A2E53BDDC001BC6EF /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		CE48AB2C2E53BDDC001BC6EF /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		CE4E9BA62E54185800E1C53C /* StudyTimerAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyTimerAttributes.swift; sourceTree = "<group>"; };
+		CE4E9BAA2E54186600E1C53C /* TimerIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerIntents.swift; sourceTree = "<group>"; };
 		CEDD5DA02D9CD66900550802 /* memo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = memo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CEDD5DB02D9CD66A00550802 /* memoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = memoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CEDD5DBA2D9CD66A00550802 /* memoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = memoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CE48AB232E53BB28001BC6EF /* Exceptions for "memo" folder in "memo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CEDD5D9F2D9CD66900550802 /* memo */;
+		};
+		CE48AB402E53BDDE001BC6EF /* Exceptions for "MemoTimerWidget" folder in "MemoTimerWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CE48AB282E53BDDC001BC6EF /* MemoTimerWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		CE48AB2E2E53BDDC001BC6EF /* MemoTimerWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CE48AB402E53BDDE001BC6EF /* Exceptions for "MemoTimerWidget" folder in "MemoTimerWidgetExtension" target */,
+			);
+			path = MemoTimerWidget;
+			sourceTree = "<group>";
+		};
 		CEDD5DA22D9CD66900550802 /* memo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CE48AB232E53BB28001BC6EF /* Exceptions for "memo" folder in "memo" target */,
+			);
 			path = memo;
 			sourceTree = "<group>";
 		};
@@ -58,6 +119,15 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CE48AB262E53BDDC001BC6EF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CE48AB2D2E53BDDC001BC6EF /* SwiftUI.framework in Frameworks */,
+				CE48AB2B2E53BDDC001BC6EF /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CEDD5D9D2D9CD66900550802 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -92,6 +162,8 @@
 		CEA61F492DAFDDDA00125A26 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				CE48AB2A2E53BDDC001BC6EF /* WidgetKit.framework */,
+				CE48AB2C2E53BDDC001BC6EF /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -102,8 +174,11 @@
 				CEDD5DA22D9CD66900550802 /* memo */,
 				CEDD5DB32D9CD66A00550802 /* memoTests */,
 				CEDD5DBD2D9CD66A00550802 /* memoUITests */,
+				CE48AB2E2E53BDDC001BC6EF /* MemoTimerWidget */,
 				CEA61F492DAFDDDA00125A26 /* Frameworks */,
 				CEDD5DA12D9CD66900550802 /* Products */,
+				CE4E9BA62E54185800E1C53C /* StudyTimerAttributes.swift */,
+				CE4E9BAA2E54186600E1C53C /* TimerIntents.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -113,6 +188,7 @@
 				CEDD5DA02D9CD66900550802 /* memo.app */,
 				CEDD5DB02D9CD66A00550802 /* memoTests.xctest */,
 				CEDD5DBA2D9CD66A00550802 /* memoUITests.xctest */,
+				CE48AB292E53BDDC001BC6EF /* MemoTimerWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -120,6 +196,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		CE48AB282E53BDDC001BC6EF /* MemoTimerWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE48AB3D2E53BDDE001BC6EF /* Build configuration list for PBXNativeTarget "MemoTimerWidgetExtension" */;
+			buildPhases = (
+				CE48AB252E53BDDC001BC6EF /* Sources */,
+				CE48AB262E53BDDC001BC6EF /* Frameworks */,
+				CE48AB272E53BDDC001BC6EF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CE48AB2E2E53BDDC001BC6EF /* MemoTimerWidget */,
+			);
+			name = MemoTimerWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = MemoTimerWidgetExtension;
+			productReference = CE48AB292E53BDDC001BC6EF /* MemoTimerWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		CEDD5D9F2D9CD66900550802 /* memo */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CEDD5DC42D9CD66A00550802 /* Build configuration list for PBXNativeTarget "memo" */;
@@ -127,11 +225,13 @@
 				CEDD5D9C2D9CD66900550802 /* Sources */,
 				CEDD5D9D2D9CD66900550802 /* Frameworks */,
 				CEDD5D9E2D9CD66900550802 /* Resources */,
+				CE48AB412E53BDDE001BC6EF /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				CE5550912E4530E90087FD7A /* PBXTargetDependency */,
+				CE48AB3B2E53BDDE001BC6EF /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				CEDD5DA22D9CD66900550802 /* memo */,
@@ -203,9 +303,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
+				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					CE48AB282E53BDDC001BC6EF = {
+						CreatedOnToolsVersion = 16.4;
+					};
 					CEDD5D9F2D9CD66900550802 = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -241,11 +344,19 @@
 				CEDD5D9F2D9CD66900550802 /* memo */,
 				CEDD5DAF2D9CD66A00550802 /* memoTests */,
 				CEDD5DB92D9CD66A00550802 /* memoUITests */,
+				CE48AB282E53BDDC001BC6EF /* MemoTimerWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		CE48AB272E53BDDC001BC6EF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CEDD5D9E2D9CD66900550802 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -270,10 +381,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		CE48AB252E53BDDC001BC6EF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CE4E9BA82E54185800E1C53C /* StudyTimerAttributes.swift in Sources */,
+				CE4E9BAB2E54186600E1C53C /* TimerIntents.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CEDD5D9C2D9CD66900550802 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CE4E9BA72E54185800E1C53C /* StudyTimerAttributes.swift in Sources */,
+				CE4E9BAC2E54186600E1C53C /* TimerIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -294,6 +416,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CE48AB3B2E53BDDE001BC6EF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CE48AB282E53BDDC001BC6EF /* MemoTimerWidgetExtension */;
+			targetProxy = CE48AB3A2E53BDDE001BC6EF /* PBXContainerItemProxy */;
+		};
 		CE5550912E4530E90087FD7A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			productRef = CE5550902E4530E90087FD7A /* Confidential */;
@@ -311,6 +438,62 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		CE48AB3E2E53BDDE001BC6EF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WNGYVY5A7Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MemoTimerWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MemoTimerWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = weyers.memo.MemoTimerWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CE48AB3F2E53BDDE001BC6EF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WNGYVY5A7Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MemoTimerWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MemoTimerWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = weyers.memo.MemoTimerWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		CEDD5DC22D9CD66A00550802 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -441,6 +624,7 @@
 				DEVELOPMENT_TEAM = WNGYVY5A7Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = memo/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Memo;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -472,6 +656,7 @@
 				DEVELOPMENT_TEAM = WNGYVY5A7Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = memo/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Memo;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -563,6 +748,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CE48AB3D2E53BDDE001BC6EF /* Build configuration list for PBXNativeTarget "MemoTimerWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE48AB3E2E53BDDE001BC6EF /* Debug */,
+				CE48AB3F2E53BDDE001BC6EF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CEDD5D9B2D9CD66900550802 /* Build configuration list for PBXProject "memo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

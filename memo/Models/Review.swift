@@ -1,9 +1,3 @@
-//
-//  Review.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 20/07/25.
-//
 import Foundation
 
 struct Review: Codable, Identifiable {

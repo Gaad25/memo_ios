@@ -1,11 +1,13 @@
 // memo/Features/Home/HomeView.swift
 
 import SwiftUI
+import UIKit
 
 struct HomeView: View {
     @EnvironmentObject private var viewModel: HomeViewModel
     @State private var isAddingSubject = false
     @State private var isAddingGoal = false
+    @State private var resumeSubject: Subject?
     
     var body: some View {
         NavigationStack {
@@ -14,6 +16,22 @@ struct HomeView: View {
                     
                     headerView
                     
+                    if let last = viewModel.lastStudiedSubject {
+                        ResumeStudyCard(subject: last) {
+                            Haptics.light()
+                            resumeSubject = last
+                        }
+                    }
+
+                    if !viewModel.todaysReviews.isEmpty {
+                        NavigationLink {
+                            ReviewsView()
+                        } label: {
+                            TodayReviewsSection(reviews: viewModel.todaysReviews)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     HStack(spacing: 16) {
                         MetricCard(title: "Pontos", value: "\(viewModel.userPoints)", iconName: "star.fill", iconColor: .yellow)
                         MetricCard(title: viewModel.userStreak == 1 ? "Dia de Foco" : "Dias de Foco", value: "\(viewModel.userStreak)", iconName: "flame.fill", iconColor: .orange)
@@ -55,6 +73,9 @@ struct HomeView: View {
             .navigationBarHidden(true)
             .refreshable { await viewModel.refreshAllDashboardData() }
             .onAppear { Task { await viewModel.refreshAllDashboardData() } }
+            .sheet(item: $resumeSubject) { subject in
+                StudySessionView(subject: subject)
+            }
             // --- CORREÇÃO AQUI (1/3): AÇÕES DAS SHEETS RESTAURADAS ---
             .sheet(isPresented: $isAddingSubject) {
                 AddSubjectView(subjectToEdit: nil, onDone: {
@@ -67,6 +88,9 @@ struct HomeView: View {
                 }
             }
         }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                Task { await viewModel.refreshAllDashboardData() }
+            }
     }
     
     // MARK: - Subviews
@@ -220,6 +244,72 @@ struct SubjectRow: View {
                 Text(subject.name).fontWeight(.semibold)
                 Text(subject.category).font(.caption).foregroundColor(.secondary)
             }
+            Spacer()
+            Image(systemName: "chevron.right").foregroundColor(.secondary)
+        }
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Resume Study Card
+struct ResumeStudyCard: View {
+    let subject: Subject
+    let onContinue: () -> Void
+    var body: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Continuar de Onde Parou").font(.headline)
+                Text(subject.name)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Button(action: onContinue) {
+                Label("Continuar Estudo", systemImage: "play.fill")
+                    .labelStyle(.titleAndIcon)
+            }
+            .buttonStyle(PrimaryButtonStyle())
+            .frame(width: 200)
+        }
+        .modifier(CardBackgroundModifier())
+    }
+}
+
+// MARK: - Today Reviews Section
+struct TodayReviewsSection: View {
+    let reviews: [ReviewsViewModel.ReviewDetail]
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Suas revisões para hoje")
+                .font(.headline)
+            VStack(spacing: 0) {
+                ForEach(reviews.prefix(5)) { detail in
+                    TodayReviewRow(subjectName: detail.subjectData.name)
+                    if detail.id != reviews.prefix(5).last?.id {
+                        Divider().padding(.leading, 20)
+                    }
+                }
+                if reviews.count > 5 {
+                    HStack {
+                        Spacer()
+                        Text("+\(reviews.count - 5) mais…")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }.padding(.top, 8)
+                }
+            }
+        }
+        .modifier(CardBackgroundModifier())
+    }
+}
+
+struct TodayReviewRow: View {
+    let subjectName: String
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "calendar.circle.fill").foregroundColor(.dsPrimary)
+            Text(subjectName).fontWeight(.semibold)
             Spacer()
             Image(systemName: "chevron.right").foregroundColor(.secondary)
         }

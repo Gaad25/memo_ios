@@ -1,16 +1,23 @@
-//
-//  StatisticsViewModel.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 13/07/25.
-//
-// memo/Features/Statistics/StatisticsViewModel.swift
-
 // memo/Features/Statistics/StatisticsViewModel.swift
 
 import Foundation
 import SwiftUI
 import Combine
+
+// MARK: - Time Filter
+enum TimeFilter: String, CaseIterable, Hashable {
+    case week = "7d"
+    case month = "30d"
+    case quarter = "90d"
+
+    var days: Int {
+        switch self {
+        case .week: return 7
+        case .month: return 30
+        case .quarter: return 90
+        }
+    }
+}
 
 // Helper para "prender" um valor dentro de um intervalo.
 private extension ClosedRange where Bound == Double {
@@ -33,14 +40,21 @@ struct SubjectPerformance: Identifiable {
 struct DailyStudy: Identifiable {
     let id: String // Nome do dia da semana (Ex: "Seg")
     var minutes: Int
+    var subjectColors: [Color]
 }
 
 @MainActor
 final class StatisticsViewModel: ObservableObject {
     @Published var subjectPerformances: [SubjectPerformance] = []
     @Published var weeklyDistribution: [DailyStudy] = []
+    @Published var maxDailyMinutes: Int = 0
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var selectedFilter: TimeFilter = .month
+    
+    // Dados completos para recálculo conforme filtro
+    @Published private(set) var allSessions: [StudySession] = []
+    private var allSubjects: [Subject] = []
     
     /// Referência para a tarefa de busca de dados em andamento.
     private var fetchTask: Task<Void, Never>?
@@ -79,16 +93,35 @@ final class StatisticsViewModel: ObservableObject {
             // Verifica se a tarefa foi cancelada antes de atualizar o estado
             guard !Task.isCancelled else { return }
 
-            processData(subjects: subjects, sessions: sessions)
+            self.allSubjects = subjects
+            self.allSessions = sessions
+            recompute()
 
         } catch is CancellationError {
             // Se o erro for de cancelamento, é esperado. Apenas saia da função.
+            #if DEBUG
             print("Fetch task for Statistics was cancelled.")
+            #endif
             return
         } catch {
             errorMessage = "Não foi possível carregar as estatísticas."
+            #if DEBUG
             print("❌ Erro em fetchData (StatisticsViewModel): \(error.localizedDescription)")
+            #endif
         }
+    }
+
+    // MARK: - Public API
+    func setFilter(_ filter: TimeFilter) {
+        selectedFilter = filter
+        recompute()
+    }
+
+    // MARK: - Derivação de dados por filtro
+    private func recompute() {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -selectedFilter.days, to: Date()) ?? Date.distantPast
+        let filtered = allSessions.filter { $0.endTime >= cutoff }
+        processData(subjects: allSubjects, sessions: filtered)
     }
 
     /// Retorna uma Color de uma string hexadecimal de forma segura.
@@ -127,18 +160,29 @@ final class StatisticsViewModel: ObservableObject {
         self.subjectPerformances = performances.sorted { $0.totalMinutes > $1.totalMinutes }
 
         let calendar = Calendar.current
-        var dailyTotals: [Int: Int] = [:]
+        // Mapeamos: número do dia da semana -> (minutos totais, conjunto de subjectIds)
+        var dailyData: [Int: (minutes: Int, subjectIds: Set<UUID>)] = [:]
 
         for session in validSessions {
             let weekday = calendar.component(.weekday, from: session.startTime)
             guard (1...7).contains(weekday) else { continue }
-            dailyTotals[weekday, default: 0] += session.durationMinutes
+            var entry = dailyData[weekday] ?? (minutes: 0, subjectIds: [])
+            entry.minutes += Swift.max(0, session.durationMinutes)
+            entry.subjectIds.insert(session.subjectId)
+            dailyData[weekday] = entry
         }
-        
+
+        let subjectsById = Dictionary(uniqueKeysWithValues: subjects.map { ($0.id, $0) })
+
         let distribution = daySymbols.enumerated().map { index, symbol in
-            DailyStudy(id: symbol, minutes: dailyTotals[index + 1] ?? 0)
+            let weekday = index + 1
+            let entry = dailyData[weekday]
+            let colors: [Color] = (entry?.subjectIds ?? []).compactMap { subjectsById[$0]?.color }.map { color(from: $0) }
+            return DailyStudy(id: symbol, minutes: entry?.minutes ?? 0, subjectColors: colors)
         }
         
         self.weeklyDistribution = distribution
+        let maxMinutes = distribution.map { $0.minutes }.max() ?? 0
+        self.maxDailyMinutes = (maxMinutes == 0) ? 60 : maxMinutes
     }
 }

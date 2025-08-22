@@ -1,17 +1,3 @@
-//
-//  AppError.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 09/08/25.
-//
-//
-//  AppError.swift
-//  memo
-//
-//  Este arquivo define os erros personalizados para o aplicativo,
-//  permitindo um tratamento de erros mais claro e específico.
-//
-
 import Foundation
 
 enum AppError: LocalizedError, Equatable {

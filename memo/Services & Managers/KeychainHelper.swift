@@ -1,11 +1,3 @@
-//
-//  KeychainHelper.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 04/08/25.
-//
-// memo/Services & Managers/KeychainHelper.swift
-
 import Foundation
 import Security
 

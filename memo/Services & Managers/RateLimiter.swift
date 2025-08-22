@@ -1,9 +1,3 @@
-//
-//  RateLimiter.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 09/08/25.
-//
 import Foundation
 
 actor RateLimiter {

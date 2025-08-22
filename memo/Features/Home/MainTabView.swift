@@ -7,7 +7,7 @@ struct MainTabView: View {
 
     // Enum para controlar a aba selecionada e os ícones
     enum Tab {
-        case home, reviews, ai, statistics, settings
+        case home, reviews, ai, ranking, profile
     }
 
     var body: some View {
@@ -20,27 +20,27 @@ struct MainTabView: View {
 
             ReviewsView()
                 .tabItem {
-                    Label("Revisões", systemImage: selectedTab == .reviews ? "calendar.day.timeline.left" : "calendar")
+                    Label("Revisões", systemImage: "calendar")
                 }
                 .tag(Tab.reviews)
             
             AIGeneratorView()
                 .tabItem {
-                    Label("IA", systemImage: selectedTab == .ai ? "sparkles" : "sparkle")
+                    Label("Zoe", systemImage: "pawprint.fill")
                 }
                 .tag(Tab.ai)
             
-            StatisticsView()
+            RankingView()
                 .tabItem {
-                    Label("Estatísticas", systemImage: selectedTab == .statistics ? "chart.bar.xaxis" : "chart.bar")
+                    Label("Ranking", systemImage: "trophy.fill")
                 }
-                .tag(Tab.statistics)
+                .tag(Tab.ranking)
 
-            SettingsView()
+            ProfileView()
                 .tabItem {
-                    Label("Ajustes", systemImage: selectedTab == .settings ? "gearshape.fill" : "gearshape")
+                    Label("Perfil", systemImage: "person.fill")
                 }
-                .tag(Tab.settings)
+                .tag(Tab.profile)
         }
         .tint(.dsPrimary) // Define a cor de destaque para o item selecionado
     }

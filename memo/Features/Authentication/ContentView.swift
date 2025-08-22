@@ -12,7 +12,7 @@ struct ContentView: View {
     @State private var isLoading = false
     @State private var loginAttempts = 0
     @State private var authError: AuthError?
-    @State private var isPasswordVisible = false
+    
 
     @FocusState private var focusedField: Field?
     private enum Field: Hashable {
@@ -38,17 +38,16 @@ struct ContentView: View {
                         IconTextField(iconName: "envelope.fill", placeholder: "E-mail", text: $email, isInvalid: authError != nil, focusedField: $focusedField, field: .email)
                             .keyboardType(.emailAddress).textContentType(.emailAddress).autocapitalization(.none)
 
-                        HStack {
-                            IconTextField(iconName: "lock.fill", placeholder: "Senha", text: $password, isSecure: !isPasswordVisible, isInvalid: authError != nil, focusedField: $focusedField, field: .password)
-                                .textContentType(.password)
-
-                            Button {
-                                isPasswordVisible.toggle()
-                            } label: {
-                                Image(systemName: isPasswordVisible ? "eye.slash.fill" : "eye.fill")
-                                    .foregroundColor(.dsTextSecondary)
-                            }
-                        }
+                        IconTextField(
+                            iconName: "lock.fill",
+                            placeholder: "Senha",
+                            text: $password,
+                            isSecure: true,
+                            isInvalid: authError != nil,
+                            focusedField: $focusedField,
+                            field: .password
+                        )
+                        .textContentType(.password)
                     }
                     
                     if let authError {
@@ -101,9 +100,11 @@ struct ContentView: View {
             withAnimation(.default) {
                 loginAttempts += 1
             }
-        } else {
+        } else if session.isLoggedIn {
+            // Login bem-sucedido
             if rememberMe {
-                session.saveCredentials(email: email, password: password)
+                // As credenciais já foram salvas no SessionManager.signIn()
+                print("✅ Login bem-sucedido - credenciais salvas")
             } else {
                 session.clearCredentials()
             }

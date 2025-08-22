@@ -63,7 +63,7 @@ struct PrimaryButtonStyle: ButtonStyle {
         configuration.label
             .font(.headline.weight(.semibold))
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .frame(minHeight: 50)
             .background(Color.dsPrimary.opacity(isEnabled ? 1.0 : 0.5))
             .foregroundColor(.white)
             .cornerRadius(12)
@@ -79,7 +79,7 @@ struct SocialButtonStyle: ButtonStyle {
             .font(.headline)
             .foregroundColor(.dsTextPrimary)
             .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .frame(minHeight: 50)
             .background(Color.dsSecondaryBackground)
             .cornerRadius(12)
             .overlay(
@@ -567,5 +567,47 @@ struct EmptyState: View {
         .background(Color.dsSecondaryBackground)
         .cornerRadius(20)
         .padding()
+    }
+}
+
+// MARK: - Spacing Tokens
+enum Spacing {
+    static let s: CGFloat = 8
+    static let m: CGFloat = 12
+    static let l: CGFloat = 16
+    static let xl: CGFloat = 24
+}
+
+// MARK: - Toast Modifier
+struct ToastModifier: ViewModifier {
+    @Binding var isPresented: Bool
+    let message: String
+    func body(content: Content) -> some View {
+        ZStack {
+            content
+            if isPresented {
+                Text(message)
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Color.black.opacity(0.06)))
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .padding(.top, 8)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation { isPresented = false }
+                        }
+                    }
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.9), value: isPresented)
+    }
+}
+
+extension View {
+    func toast(_ isPresented: Binding<Bool>, message: String) -> some View {
+        modifier(ToastModifier(isPresented: isPresented, message: message))
     }
 }

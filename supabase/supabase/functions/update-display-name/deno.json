@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "bad-words": "npm:bad-words@^4.0.0"
+  }
+}

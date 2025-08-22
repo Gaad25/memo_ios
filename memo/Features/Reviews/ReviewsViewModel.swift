@@ -106,7 +106,9 @@ final class ReviewsViewModel: ObservableObject {
                 .value
         } catch {
             self.errorMessage = "Não foi possível buscar as suas revisões."
+            #if debug
             print("❌ Erro em fetchData (ReviewsViewModel): \(error.localizedDescription)")
+            #endif
         }
         
         isLoading = false
@@ -195,7 +197,9 @@ final class ReviewsViewModel: ObservableObject {
         do {
             try await SupabaseManager.shared.client.from("reviews").insert(nextReview).execute()
         } catch {
+            #if debug
             print("❌ Erro ao agendar a próxima revisão: \(error.localizedDescription)")
+            #endif
         }
     }
 }

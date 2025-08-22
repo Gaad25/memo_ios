@@ -1,13 +1,4 @@
-//
-//  CredentialsStore.swift
-//  memo
-//
-//  Created by OpenAI Assistant on 2025-08-14.
-//
-//  This helper abstracts persistence of user credentials using
-//  UserDefaults and the Keychain. It allows `SessionManager`
-//  to focus solely on authentication logic.
-//
+
 import Foundation
 
 struct CredentialsStore {
@@ -21,7 +12,9 @@ struct CredentialsStore {
             try KeychainHelper.save(password: password, forEmail: email)
         } catch {
             // In a production app we would log this error.
+            #if DEBUG
             print("❌ Failed to save password in Keychain: \(error)")
+            #endif
         }
     }
 
@@ -35,7 +28,9 @@ struct CredentialsStore {
                 return (email, password)
             }
         } catch {
+            #if DEBUG
             print("❌ Failed to load password from Keychain: \(error)")
+            #endif
         }
         return nil
     }
@@ -46,7 +41,9 @@ struct CredentialsStore {
             do {
                 try KeychainHelper.delete(forEmail: email)
             } catch {
+                #if DEBUG
                 print("❌ Failed to delete password from Keychain: \(error)")
+                #endif
             }
         }
         UserDefaults.standard.removeObject(forKey: emailKey)

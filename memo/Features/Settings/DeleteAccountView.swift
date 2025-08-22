@@ -1,11 +1,3 @@
-//
-//  DeleteAccountView.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 04/08/25.
-//
-// memo/Features/Settings/DeleteAccountView.swift
-
 import SwiftUI
 
 struct DeleteAccountView: View {

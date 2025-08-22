@@ -1,10 +1,3 @@
-//
-//  Goal.swift
-//  memo
-//
-//  Created by Gabriel Gad Costa Weyers on 26/05/25.
-//
-
 import Foundation
 
 struct Goal: Codable, Identifiable {
